@@ -18,7 +18,7 @@ instance Show SLit where
   show (SSym s) = '\'' : s
 
 data UserPrim = Plus | Mult | Sub | Div    | Display
-              | Cons | Car  | Cdr | CallCC
+              | Cons | Car  | Cdr
               deriving(Eq, Show)
 data CPSPrim = Halt | UserPrim UserPrim
               deriving(Eq, Show)
