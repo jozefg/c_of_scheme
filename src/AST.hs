@@ -22,7 +22,7 @@ data UserPrim = Plus | Mult | Sub | Div    | Display
               deriving(Eq, Show)
 data CPSPrim = Halt | UserPrim UserPrim
               deriving(Eq, Show)
-data ClosPrim = NewClos | SelectClos | CPSPrim CPSPrim
+data ClosPrim = NewClos | SelectClos | WriteClos | CPSPrim CPSPrim
 
 data SExp p = Lit  SLit
             | Lam [Var] [SDec p] [SExp p]
