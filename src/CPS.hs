@@ -7,11 +7,6 @@ cpsifySDec :: [SDec UserPrim] -> [SDec CPSPrim]
 cpsifySDec = runGen
              . mapM (\(Def nm e) -> Def nm <$> cps e (Prim Halt))
 
-freshLam :: (SExp CPSPrim -> Gen (SExp CPSPrim)) -> Gen (SExp CPSPrim)
-freshLam f = do
-  v <- Gen <$> gen
-  Lam [v] [] . (:[]) <$> f (Var v)
-
 (#) :: SExp p -> SExp p -> SExp p
 f # v = App f [v]
 

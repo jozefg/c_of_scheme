@@ -1,5 +1,6 @@
 module AST where
-import Data.List
+import Gen
+import Control.Applicative
 
 data Var = SVar String | Gen Integer
          deriving(Eq, Ord)
@@ -44,3 +45,9 @@ instance Show p => Show (SExp p) where
   show (Prim p) = show p
 data SDec p = Def Var (SExp p)
             deriving(Eq, Show)
+
+freshLam :: (SExp a -> Gen (SExp a)) -> Gen (SExp a)
+freshLam f = do
+  v <- Gen <$> gen
+  Lam [v] [] . (:[]) <$> f (Var v)
+
