@@ -3,9 +3,8 @@ import Control.Applicative
 import Gen
 import AST
 
-cpsifySDec :: [SDec UserPrim] -> [SDec CPSPrim]
-cpsifySDec = runGen
-             . mapM (\(Def nm e) -> Def nm <$> cps e (Prim Halt))
+cpsifySDec :: [SDec UserPrim] -> Gen [SDec CPSPrim]
+cpsifySDec = mapM (\(Def nm e) -> Def nm <$> cps e (Prim Halt))
 
 (#) :: SExp p -> SExp p -> SExp p
 f # v = App f [v]
