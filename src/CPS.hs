@@ -33,4 +33,11 @@ cps (App f args) k = runAll args $ useArgs f
   where useArgs (Prim p) cArgs = return $ k # App (Prim $ UserPrim p) cArgs
         useArgs f          cArgs =
           freshLam (\f' -> return $ App f' (k:cArgs)) >>= cps f
+cps (Prim CallCC) k = do
+  cont' <- cont
+  freshLam $ \f -> return $ f `App` [k, cont']
+  where cont = do
+          k'      <- Gen <$> gen
+          result  <- Gen <$> gen
+          return $ Lam [k', result] [k # Var result]
 cps (Prim p) k = return $ k # Prim (UserPrim p)
