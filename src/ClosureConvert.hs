@@ -65,12 +65,14 @@ closeOver c (Lam vars exps) = do
   lifted <- liftedLam
   modify (M.insert lambdaName lifted)
   return $ Lam vars [Var lambdaName `App` map Var (c : vars)]
-  where liftedLam = do
+  where liftedLam :: SExpM; liftedLam = do
           closName <- Gen <$> gen
-          newClos <- Gen <$> gen
-          exps' <- mapM (closeOver newClos) exps
+          newClos  <- Gen <$> gen
+          exps' <- addClos $ mapM (closeOver newClos) exps
           return . Lam (closName : vars) $
             Prim (NewClos newClos) `App` (map Var $ closName : vars) : exps'
+        addClos m = local (M.union newVars . M.map (0:)) $ m
+        newVars = M.fromList $ zip vars (map pure [1..])
 
 convertDecs :: Var -> [SDec CPSPrim] -> ClosM [SDec ClosPrim]
 convertDecs c = mapM convertDec
