@@ -9,16 +9,14 @@ instance Show Var where
   show (Gen  i) = "%gen_"++show i
 
 data SLit = SInt Int
-          | SStr String
           | SSym String
           deriving(Eq)
 instance Show SLit where
   show (SInt i) = show i
-  show (SStr s) = show s
   show (SSym s) = '\'' : s
 
 data UserPrim = Plus | Mult | Sub | Div    | Display
-              | Cons | Car  | Cdr | CallCC
+              | Cons | Car  | Cdr | CallCC | Eq
               deriving(Eq, Show)
 data CPSPrim = Halt | UserPrim UserPrim
               deriving(Eq, Show)

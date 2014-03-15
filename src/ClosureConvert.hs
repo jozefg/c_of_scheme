@@ -34,16 +34,18 @@ convert decs = runClosM $ do
 
 isCloseVar :: Var -> ClosM Bool
 isCloseVar v = M.member v <$> ask
+
+isCloseFun :: Var -> ClosM Bool
 isCloseFun v = M.member v <$> get
 
 closeOver :: Var -> SExp CPSPrim -> SExpM
-closeOver c (Prim p) = return $ Prim (CPSPrim p)
+closeOver _ (Prim p) = return $ Prim (CPSPrim p)
 closeOver c (Var v)  = do
   closedVar <- isCloseVar v
   closedFun <- isCloseFun v
   if closedVar then do
              path <- (M.! v) <$> ask
-             let lookupVar = foldr (\i c -> Prim SelectClos `App` [Lit $ SInt i, c]) (Var c) path
+             let lookupVar = foldr (\i k -> Prim SelectClos `App` [Lit $ SInt i, k]) (Var c) path
              return lookupVar
   else if closedFun then do
                   (Lam (_:vars) _) <- (M.! v) <$> get
@@ -68,7 +70,7 @@ closeOver c (Lam vars exps) = do
   where liftedLam :: SExpM; liftedLam = do
           closName <- Gen <$> gen
           newClos  <- Gen <$> gen
-          exps' <- addClos $ mapM (closeOver newClos) exps
+          exps'    <- addClos $ mapM (closeOver newClos) exps
           return . Lam (closName : vars) $
             Prim (NewClos newClos) `App` (map Var $ closName : vars) : exps'
         addClos m = local (M.union newVars . M.map (0:)) $ m
