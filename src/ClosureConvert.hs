@@ -64,7 +64,7 @@ closeOver c (Lam vars exps) = do
   lambdaName <- Gen <$> gen
   lifted <- liftedLam
   modify (M.insert lambdaName lifted)
-  return $ Lam vars [Var lambdaName `App` map Var vars]
+  return $ Lam vars [Var lambdaName `App` map Var (c : vars)]
   where liftedLam = do
           closName <- Gen <$> gen
           newClos <- Gen <$> gen
