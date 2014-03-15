@@ -36,12 +36,6 @@ isCloseVar :: Var -> ClosM Bool
 isCloseVar v = M.member v <$> ask
 isCloseFun v = M.member v <$> get
 
-newClos :: SExp ClosPrim -> [Var] -> (SExp ClosPrim -> SExpM) -> SExpM
-newClos previous vars f =
-  local (M.union newVars . M.map (0:)) $
-    f (Prim NewClos `App` (previous : map Var vars))
-  where newVars = M.fromList $ zip vars (map pure [1..])
-
 closeOver :: Var -> SExp CPSPrim -> SExpM
 closeOver c (Prim p) = return $ Prim (CPSPrim p)
 closeOver c (Var v)  = do
@@ -52,8 +46,8 @@ closeOver c (Var v)  = do
              let lookupVar = foldr (\i c -> Prim SelectClos `App` [Lit $ SInt i, c]) (Var c) path
              return lookupVar
   else if closedFun then do
-                  (Lam (_:vars) _ _) <- (M.! v) <$> get
-                  return $ Lam vars [] [Var v `App` map Var (c : tail vars)]
+                  (Lam (_:vars) _) <- (M.! v) <$> get
+                  return $ Lam vars [Var v `App` map Var (c : tail vars)]
     else return $ Var v
 closeOver _ (Lit l) = return $ Lit l
 closeOver c (App f args) = App <$> closeOver c f <*> mapM (closeOver c) args
@@ -65,18 +59,18 @@ closeOver c (Set v exp) = do
   case closedVar of
     Var v'  -> Set v' <$> closeOver c exp
     Prim x  -> App (Prim WriteClos) <$> sequence [return $ Prim x, closeOver c exp]
-    Lam _ _ [App (Var v') _] -> Set v' <$> closeOver c exp
-closeOver c (Lam vars decs exps) = do
+    Lam _ [App (Var v') _] -> Set v' <$> closeOver c exp
+closeOver c (Lam vars exps) = do
   lambdaName <- Gen <$> gen
   lifted <- liftedLam
   modify (M.insert lambdaName lifted)
-  return $ Lam vars [] [Var lambdaName `App` map Var vars]
+  return $ Lam vars [Var lambdaName `App` map Var vars]
   where liftedLam = do
           closName <- Gen <$> gen
-          newClos (Var closName) vars $ \c' -> do
-            decs' <- convertDecs closName decs
-            exps' <- mapM (closeOver closName) exps
-            return $ Lam (closName : vars) (Def closName c' : decs') exps'
+          newClos <- Gen <$> gen
+          exps' <- mapM (closeOver newClos) exps
+          return . Lam (closName : vars) $
+            Prim (NewClos newClos) `App` (map Var $ closName : vars) : exps'
 
 convertDecs :: Var -> [SDec CPSPrim] -> ClosM [SDec ClosPrim]
 convertDecs c = mapM convertDec

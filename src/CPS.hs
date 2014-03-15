@@ -17,11 +17,11 @@ runAll = go []
 
 cps :: SExp UserPrim -> SExp CPSPrim -> Gen (SExp CPSPrim)
 cps (Lit l) k = return $ k # Lit l
-cps (Lam args decs exps) k = do
+cps (Lam args exps) k = do
   newCont <- Gen <$> gen
   (k#) <$> newLam newCont
     where newLam newCont =
-            Lam (newCont : args) (map toCPS decs) . (:[]) <$>
+            Lam (newCont : args) . (:[]) <$>
             runAll exps (return . (Var newCont#) . head)
             -- run all expressions and return the result
 cps (Var v) k = return $ k # Var v
@@ -34,13 +34,3 @@ cps (App f args) k = runAll args $ useArgs f
         useArgs f          cArgs =
           freshLam (\f' -> return $ App f' (k:cArgs)) >>= cps f
 cps (Prim p) k = return $ k # Prim (UserPrim p)
-
-toCPS :: SDec UserPrim -> SDec CPSPrim
-toCPS (Def n e) = Def n $ go e
-  where go (Prim p) = Prim $ UserPrim p
-        go (Lit l)  = Lit l
-        go (Var v)  = Var v
-        go (If test true false) = If (go test) (go true) (go false)
-        go (App f args) = go f `App` map go args
-        go (Set v e) = Set v $ go e
-        go (Lam vs ds es) = Lam vs (map toCPS ds) (map go es)

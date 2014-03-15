@@ -22,11 +22,11 @@ data UserPrim = Plus | Mult | Sub | Div    | Display
               deriving(Eq, Show)
 data CPSPrim = Halt | UserPrim UserPrim
               deriving(Eq, Show)
-data ClosPrim = NewClos | SelectClos | WriteClos | TopClos | CPSPrim CPSPrim
+data ClosPrim = NewClos Var | SelectClos | WriteClos | TopClos | CPSPrim CPSPrim
               deriving(Eq, Show)
 
 data SExp p = Lit  SLit
-            | Lam [Var] [SDec p] [SExp p]
+            | Lam [Var] [SExp p]
             | Set Var (SExp p)
             | If (SExp p) (SExp p) (SExp p)
             | App (SExp p) [SExp p]
@@ -35,9 +35,9 @@ data SExp p = Lit  SLit
             deriving(Eq)
 instance Show p => Show (SExp p) where
   show (Lit l) = show l
-  show (Lam vars decs exps) =
+  show (Lam vars exps) =
     "(lambda ("++ unwords (map show vars) ++ ")" ++
-    unwords (map show decs) ++ '\n' : unwords (map show exps) ++ ")"
+    '\n' : unwords (map show exps) ++ ")"
   show (Set v e) = "( set! " ++ show v ++ " " ++ show e ++ ")"
   show (If test true false) =
     "(if " ++ show test ++ "\n" ++ show true ++ "\n" ++ show false ++ ")"
@@ -48,10 +48,10 @@ data SDec p = Def Var (SExp p)
             deriving(Eq)
 
 instance Show p => Show (SDec p) where
-  show (Def v e) = "(define v\n  "++show e++")"
+  show (Def v e) = "(define "++show v++"\n  "++show e++")"
 
 freshLam :: (SExp a -> Gen (SExp a)) -> Gen (SExp a)
 freshLam f = do
   v <- Gen <$> gen
-  Lam [v] [] . (:[]) <$> f (Var v)
+  Lam [v] . (:[]) <$> f (Var v)
 
