@@ -17,27 +17,27 @@ import Control.Monad.State
 -- At the beginning of each lambda, define a new value to be the new closure
 -- and pass it to all functions marked as needing it.
 
-freeVars :: SExp a -> [Var]
-freeVars = go []
-  where go bound (Var v) = if v `elem` bound then [] else [v]
-        go bound (Lam vars decs es) = es >>= go (vars ++ bound) -- Warning, doesn't deal with declarations yet
-        go bound (App f args) = f : args >>= go bound
-        go bound (Set v e) = [Var v, e] >>= go bound
-        go bound (If test true false) = [test, true, false] >>= go bound
-        go bound (Prim{}) = []
-        go bound (Lit{}) = []
-
 type ClosPath = M.Map Var [Int]
 type ClosVar  = M.Map Var (SExp ClosPrim)
 type ClosM = StateT ClosVar (ReaderT ClosPath Gen)
 type SExpM = ClosM (SExp ClosPrim)
+
+runClosM :: ClosM [SDec ClosPrim]  -> [SDec ClosPrim]
+runClosM = combine . runGen . flip runReaderT M.empty . flip runStateT M.empty
+  where combine (results, closVars) = map (uncurry Def) (M.toList closVars) ++ results
+
+convert :: Gen [SDec CPSPrim] -> [SDec ClosPrim]
+convert decs = runClosM $ do
+  undefinedClos <- Gen <$> gen
+  newDecs <- lift (lift decs) >>= convertDecs undefinedClos
+  return $ Def undefinedClos (Prim TopClos) : newDecs
 
 isCloseVar :: Var -> ClosM Bool
 isCloseVar v = M.member v <$> ask
 isCloseFun v = M.member v <$> get
 
 newClos :: SExp ClosPrim -> [Var] -> (SExp ClosPrim -> SExpM) -> SExpM
-newClos previous vars f = do
+newClos previous vars f =
   local (M.union newVars . M.map (0:)) $
     f (Prim NewClos `App` (previous : map Var vars))
   where newVars = M.fromList $ zip vars (map pure [1..])
