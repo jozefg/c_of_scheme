@@ -83,3 +83,7 @@ parseSDec = do
   exp <- parseSExp
   spaces *> char ')'
   return $ Def var exp
+
+
+parseFile :: String -> IO (Either ParseError [SDec UserPrim])
+parseFile = parseFromFile (many1 parseSDec)
