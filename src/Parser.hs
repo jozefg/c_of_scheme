@@ -69,9 +69,9 @@ parseVar = Var . SVar <$> parseIdent
 
 parseSExp :: Parser (SExp UserPrim)
 parseSExp = parseLit
-            <|> parseLam
-            <|> parseSet
-            <|> parseIf
+            <|> try parseLam
+            <|> try parseSet
+            <|> try parseIf
             <|> parseApp
             <|> parseVar
 
