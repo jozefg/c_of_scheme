@@ -1,0 +1,50 @@
+#ifdef SCHEME_2_C_RTS
+#define SCHEME_2_C_RTS
+
+/* The interface to the RTS system of scheme2c.
+   All operations except test may exit the program
+   with a type error or similar.
+*/
+
+typedef scm_t scheme_val*;
+/* User primitives, these are wrapped by implicit
+   scheme top level declaratios in Scheme.
+
+   All of these should allocate memory and will eventually
+   require GC-ing
+*/
+
+scheme_t mkInt(int i);
+scheme_t mkSym(char* s);
+scheme_t mkClos(int i, ...);
+
+scm_t scm_eq(scm_t, scm_t);
+
+void scm_apply(int i, scm_t f, ...);
+
+scm_t scm_plus(scm_t, scm_t);
+scm_t scm_sub(scm_t, scm_t);
+scm_t scm_mult(scm_t, scm_t);
+scm_t scm_div(scm_t, scm_t);
+
+scm_t scm_cons(scm_t, scm_t);
+scm_t scm_car(scm_t);
+scm_t scm_cdr(scm_t);
+
+/* Safely halt the scheme program, the
+   scheme value is ignored but necessary since
+   all toplevel declarations have the potential to call this
+*/
+void scm_halt(scm_t);
+
+/* Closure related RTS stuff
+
+   Closures should also register themselves with the GC
+   to be collected when no longer useful. We can't lexical scope
+   them because callCC is mean.
+*/
+
+scm_t scm_select_clos(int, clos_t);
+void scm_write_clos(int, scm_t, clos_t);
+scm_t scm_top_clos;
+#endif SCHEME_2_C_RTS
