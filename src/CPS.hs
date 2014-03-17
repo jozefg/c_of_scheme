@@ -17,6 +17,7 @@ runAll = go []
 
 cps :: SExp UserPrim -> SExp CPSPrim -> Gen (SExp CPSPrim)
 cps (Lit l) k = return $ k # Lit l
+cps (Set v e) k = (freshLam $ \r -> return $ k # Set v r) >>= cps e 
 cps (Lam args exps) k = do
   newCont <- Gen <$> gen
   (k#) <$> newLam newCont

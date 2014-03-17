@@ -51,7 +51,7 @@ generate (Lit (SSym s))  = return $ "mkSym"#[fromString $ s]
 generate (App f@(Var{}) args) = ("scm_apply"#) . (numArgs:) <$> mapM generate (f:args)
   where numArgs = fromInteger . toInteger . length $ args
 generate (App f@(Prim{}) args) = (#) <$> generate f <*> mapM generate args
-generate (Set v e) = ("set"#) . (:[]) <$> generate e
+generate (Set v e) = (<--) <$> fmap fromString (mangle v) <*> generate e
 generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
 
 generateSDec :: SDec ClosPrim -> CodeGenM CExtDecl
@@ -63,7 +63,8 @@ generateSDec (Def v (Lam args exps)) = do
   let init = zipWith (assignFrom $ fromString arrayName) vars [0..]
   return . export $
     fun [voidTy] funName [scm_t . ptr $ fromString arrayName]
-    (block $ init ++ intoB ("free"#[fromString arrayName]) : body)
+    (block $ init ++
+     head body : intoB ("free"#[fromString arrayName]) : tail body)
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
 generateSDec (Def v (App _ [e])) = do
   name <- fromString <$> mangle v
