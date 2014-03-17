@@ -30,7 +30,8 @@ generate (If test true false) = ternary <$> generate test <*> generate true <*> 
 generate (App (Prim (NewClos v)) args) = do
   name <- fromString . ("scm_t "++) <$> mangle v
   escaping <- mapM generate args
-  return $ name <-- "mkClos"#escaping
+  return $ name <-- "mkClos"# (numArgs:escaping)
+  where numArgs = fromInteger . toInteger . length $ args
 generate (Prim SelectClos) = return "scm_select_clos"
 generate (Prim WriteClos)  = return "scm_write_clos"
 generate (Prim (CPSPrim Halt)) = return "scm_halt"
@@ -47,7 +48,8 @@ generate (Prim (CPSPrim (UserPrim p))) = return $ case p of
 generate (Prim TopClos) = return $ "scm_top_clos"
 generate (Lit (SInt i))  = return $ "mkInt"#[fromInteger . toInteger $ i]
 generate (Lit (SSym s))  = return $ "mkSym"#[fromString $ s]
-generate (App f@(Var{}) args) = ("scm_apply"#) <$> mapM generate (f:args)
+generate (App f@(Var{}) args) = ("scm_apply"#) . (numArgs:) <$> mapM generate (f:args)
+  where numArgs = fromInteger . toInteger . length $ args
 generate (App f@(Prim{}) args) = (#) <$> generate f <*> mapM generate args
 generate (Set v e) = ("set"#) . (:[]) <$> generate e
 generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
