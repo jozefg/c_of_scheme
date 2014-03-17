@@ -1,12 +1,12 @@
-#ifdef SCHEME_2_C_RTS
-#define SCHEME_2_C_RTS
+// #ifdef SCHEME_2_C_RTS
+// #define SCHEME_2_C_RTS
 
 /* The interface to the RTS system of scheme2c.
    All operations except test may exit the program
    with a type error or similar.
 */
 
-typedef scm_t scheme_val*;
+typedef struct scheme_val* scm_t;
 /* User primitives, these are wrapped by implicit
    scheme top level declaratios in Scheme.
 
@@ -14,9 +14,9 @@ typedef scm_t scheme_val*;
    require GC-ing
 */
 
-scheme_t mkInt(int i);
-scheme_t mkSym(char* s);
-scheme_t mkClos(int i, ...);
+scm_t mkInt(int i);
+scm_t mkSym(char* s);
+scm_t mkClos(int i, ...);
 
 scm_t scm_eq(scm_t, scm_t);
 
@@ -44,7 +44,8 @@ void scm_halt(scm_t);
    them because callCC is mean.
 */
 
-scm_t scm_select_clos(int, clos_t);
-void scm_write_clos(int, scm_t, clos_t);
+scm_t scm_select_clos(int, scm_t);
+void scm_write_clos(int, scm_t, scm_t);
 scm_t scm_top_clos;
-#endif SCHEME_2_C_RTS
+
+// #endif
