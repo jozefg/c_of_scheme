@@ -15,7 +15,7 @@ main = return ()
    (define y 1)
 
    (define foo
-     ((lambda (i) (+ (+ x y) i))
+     ((lambda (i) (+ x i))
       1))
 -}
      

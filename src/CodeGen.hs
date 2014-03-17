@@ -25,7 +25,7 @@ generate :: SExp ClosPrim -> CodeGenM CExpr
 generate (Var v) = fromString <$> mangle v
 generate (If test true false) = ternary <$> generate test <*> generate true <*> generate false
 generate (App (Prim (NewClos v)) args) = do
-  name <- fromString <$> mangle v
+  name <- fromString . ("clos_t "++) <$> mangle v
   escaping <- mapM generate args
   return $ name <-- "mkClos"#escaping
 generate (Prim p) = return . fromString $ "<<primitive: " ++ show p ++ ">>"
