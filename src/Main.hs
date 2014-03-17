@@ -6,18 +6,21 @@ import AST
 import CPS
 import Gen
 import ClosureConvert
-import Parser
 
-main :: IO ()
-main = do
-  [file] <- getArgs
-  parseRes <- parseFile file
-  ast <- either ((>>exitWith (ExitFailure 1)) . print) return parseRes
-  print ast
-  putStr "\n\n\n******CPS******\n"
-  let cps = cpsifySDec ast
-  print $ runGen cps
-  putStr "\n\n\n******Closure******\n"
-  let cast = convert cps
-  print cast
-  
+
+main = return ()
+
+{- A quick test, meant to be run cabal repl
+   (define x 1)
+   (define y 1)
+
+   (define foo
+     ((lambda (i) (+ (+ x y) i))
+      1))
+-}
+     
+x = Def (SVar "x") (Lit $ SInt 1)
+y = Def (SVar "y") (Lit $ SInt 1)
+
+inner = Lam [SVar "i"] [Prim Plus `App` [Prim Plus `App` [Var (SVar "x"), Var (SVar "y"), Var (SVar "i")]]]
+outer = Def (SVar "foo") $ inner `App` [Lit (SInt 1)]

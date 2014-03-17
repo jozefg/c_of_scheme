@@ -5,7 +5,7 @@ import qualified Data.Map as M
 import Control.Applicative
 import Control.Monad.Reader
 import Control.Monad.State
-
+import Data.List (foldl')
 -- Procedure for closure conversion:
 --        
 -- Lift each lambda to it's own toplevel function accepting an
@@ -45,7 +45,7 @@ closeOver c (Var v)  = do
   closedFun <- isCloseFun v
   if closedVar then do
              path <- (M.! v) <$> ask
-             let lookupVar = foldr (\i k -> Prim SelectClos `App` [Lit $ SInt i, k]) (Var c) path
+             let lookupVar = foldl' (\k i -> Prim SelectClos `App` [Lit $ SInt i, k]) (Var c) path
              return lookupVar
   else if closedFun then do
                   (Lam (_:vars) _) <- (M.! v) <$> get
