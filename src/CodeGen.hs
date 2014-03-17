@@ -10,6 +10,9 @@ import Data.String
 
 type CodeGenM = StateT (M.Map Var String) Gen
 
+scm_t :: CDeclr -> Maybe CExpr -> CDecl
+scm_t = decl (CTypeSpec (CTypeDef "scm_t" undefNode))
+
 codegen :: [SDec ClosPrim] -> [CExtDecl]
 codegen = runGen . flip evalStateT (M.empty) . mapM generateSDec
 
@@ -25,7 +28,7 @@ generate :: SExp ClosPrim -> CodeGenM CExpr
 generate (Var v) = fromString <$> mangle v
 generate (If test true false) = ternary <$> generate test <*> generate true <*> generate false
 generate (App (Prim (NewClos v)) args) = do
-  name <- fromString . ("clos_t "++) <$> mangle v
+  name <- fromString . ("scm_t "++) <$> mangle v
   escaping <- mapM generate args
   return $ name <-- "mkClos"#escaping
 generate (Prim SelectClos) = return "scm_select_clos"
@@ -51,14 +54,17 @@ generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BL
 generateSDec :: SDec ClosPrim -> CodeGenM CExtDecl
 generateSDec (Def v (Lam args exps)) = do
   funName <- fromString <$> mangle v
-  vars <- map (int . fromString) <$> mapM mangle args
-  body <- mapM generate exps
-  return . export $ fun [voidTy] funName vars (hBlock body)
+  arrayName <- Gen <$> gen >>= mangle
+  vars <- map (scm_t . fromString) <$> mapM mangle args
+  body <- map intoB <$> mapM generate exps
+  let init = zipWith (assignFrom $ fromString arrayName) vars [0..]
+  return . export $ fun [voidTy] funName [scm_t . ptr $ fromString arrayName] (block $ init ++ body)
+  where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
 generateSDec (Def v (App _ [e])) = do
   name <- fromString <$> mangle v
   body <- generate e
-  return . export $ int name .= body
+  return . export $ scm_t name .= body
 generateSDec (Def v e) = do
   name <- fromString <$> mangle v
   body <- generate e
-  return . export $ int name .= body
+  return . export $ scm_t name .= body
