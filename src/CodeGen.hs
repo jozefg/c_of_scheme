@@ -23,14 +23,15 @@ mangle v = do
 
 generate :: SExp ClosPrim -> CodeGenM CExpr
 generate (Var v) = fromString <$> mangle v
-generate (App f args) = (#) <$> generate f <*> mapM generate args
 generate (If test true false) = ternary <$> generate test <*> generate true <*> generate false
-generate (Prim (NewClos v)) = do
-  name <- mangle v
-  return . fromString $ "<<primitive: NewClos " ++ name ++ ">>"
+generate (App (Prim (NewClos v)) args) = do
+  name <- fromString <$> mangle v
+  escaping <- mapM generate args
+  return $ name <-- "mkClos"#escaping
 generate (Prim p) = return . fromString $ "<<primitive: " ++ show p ++ ">>"
 generate (Lit (SInt i))  = return $ "mkInt"#[fromInteger . toInteger $ i]
 generate (Lit (SSym s))  = return $ "mkSym"#[fromString $ s]
+generate (App f args) = (#) <$> generate f <*> mapM generate args
 generate (Set v e) = ("set"#) . (:[]) <$> generate e
 generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
 
