@@ -68,14 +68,16 @@ scm_t mkClos(int i, ...){
   return result;
 }
 
-scm_t scm_eq(scm_t l, scm_t r){
+int scm_eq_raw(scm_t l, scm_t r){
   if(l->state != r->state)
     return 0;
   switch(l->state){
-  case 0: return mkInt(l->val.scm_int == r->val.scm_int);
-  case 1: return mkInt(strcmp(l->val.scm_sym, r->val.scm_sym));
-  case 2: case 3: return mkInt(l == r);
+  case 0: return l->val.scm_int == r->val.scm_int;
+  case 1: return strcmp(l->val.scm_sym, r->val.scm_sym);
+  case 2: case 3: return l == r;
   }
-  return mkInt(0);
+  return 0;
 }
-             
+scm_t scm_eq(scm_t l, scm_t r){
+  return mkInt(scm_eq_raw(l, r));
+}

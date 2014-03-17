@@ -19,6 +19,7 @@ scm_t mkSym(char* s);
 scm_t mkClos(int i, ...);
 
 scm_t scm_eq(scm_t, scm_t);
+int scm_eq_raw(scm_t, scm_t);
 scm_t display(scm_t);
 void scm_apply(int i, scm_t f, ...);
 

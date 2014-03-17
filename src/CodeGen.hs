@@ -26,8 +26,8 @@ mangle v = do
 
 generate :: SExp ClosPrim -> CodeGenM CExpr
 generate (Var v) = fromString <$> mangle v
-generate (If test true false) = ternary <$> fmap isZero (generate test) <*> generate true <*> generate false
-  where isZero e = "scm_eq"#[e, "mkInt"#[0]]
+generate (If test true false) = ternary <$> fmap isZero (generate test) <*> generate false <*> generate true
+  where isZero e = "scm_eq_raw"#[e, "mkInt"#[0]]
 generate (App (Prim (NewClos v)) args) = do
   name <- fromString . ("scm_t "++) <$> mangle v
   escaping <- mapM generate args
