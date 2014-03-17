@@ -32,7 +32,8 @@ generate (Prim (NewClos v)) = do
   name <- mangle v
   return . fromString $ "<<primitive: NewClos " ++ name ++ ">>"
 generate (Prim p) = return . fromString $ "<<primitive: " ++ show p ++ ">>"
-generate (Lit l)  = return . fromString $ "<<literal: " ++ show l ++ ">>"
+generate (Lit (SInt i))  = return $ "mkInt"#[fromInteger . toInteger $ i]
+generate (Lit (SSym s))  = return $ "mkSym"#[fromString $ s]
 generate (Set v e) = ("set"#) . (:[]) <$> generate e
 generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
 
@@ -42,6 +43,10 @@ generateSDec (Def v (Lam args exps)) = do
   vars <- map (int . fromString) <$> mapM mangle args
   body <- mapM generate exps
   return . export $ fun [voidTy] funName vars (hBlock body)
+generateSDec (Def v (App _ [e])) = do
+  name <- fromString <$> mangle v
+  body <- generate e
+  return . export $ int name .= body
 generateSDec (Def v e) = do
   name <- fromString <$> mangle v
   body <- generate e
