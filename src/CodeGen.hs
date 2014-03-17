@@ -28,6 +28,19 @@ generate (App (Prim (NewClos v)) args) = do
   name <- fromString . ("clos_t "++) <$> mangle v
   escaping <- mapM generate args
   return $ name <-- "mkClos"#escaping
+generate (Prim SelectClos) = return "scm_select_clos"
+generate (Prim WriteClos)  = return "scm_write_clos"
+generate (Prim (CPSPrim Halt)) = return "scm_halt"
+generate (Prim (CPSPrim (UserPrim p))) = return $ case p of
+  AST.Plus -> "scm_plus"
+  Sub  -> "scm_sub"
+  Mult -> "scm_mult"
+  Div  -> "scm_div"
+  Eq   -> "scm_eq"
+  Cons -> "scm_cons"
+  Car  -> "scm_car"
+  Cdr  -> "scm_cdr"
+  Display -> "display"
 generate (Prim p) = return . fromString $ "<<primitive: " ++ show p ++ ">>"
 generate (Lit (SInt i))  = return $ "mkInt"#[fromInteger . toInteger $ i]
 generate (Lit (SSym s))  = return $ "mkSym"#[fromString $ s]
