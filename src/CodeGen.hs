@@ -44,7 +44,7 @@ generate (Prim (CPSPrim (UserPrim p))) = return $ case p of
   Car  -> "scm_car"
   Cdr  -> "scm_cdr"
   Display -> "display"
-generate (Prim p) = return . fromString $ "<<primitive: " ++ show p ++ ">>"
+generate (Prim TopClos) = return $ "scm_top_clos"
 generate (Lit (SInt i))  = return $ "mkInt"#[fromInteger . toInteger $ i]
 generate (Lit (SSym s))  = return $ "mkSym"#[fromString $ s]
 generate (App f args) = (#) <$> generate f <*> mapM generate args
