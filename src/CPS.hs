@@ -29,6 +29,10 @@ cps (If test true false) k =
   cont >>= cps test
   where cont = freshLam $ \ test' ->
           If test' <$> cps true k <*> cps false k
+cps (App (Lam vars exps) args) k = unfoldArgs vars args
+  where unfoldArgs (v : vars) (a : args) = unfoldArgs vars args >>= cps a . Lam [v] . (:[])
+        unfoldArgs [] [] = runAll exps (return . (k#) . head)
+        unfoldArgs _ _ = error "Mismatch arguments in CPS conversion for literal lambda application"
 cps (App f args) k = runAll args $ useArgs f
   where useArgs (Prim p) cArgs = return $ k # App (Prim $ UserPrim p) cArgs
         useArgs f          cArgs =

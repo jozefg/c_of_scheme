@@ -52,7 +52,14 @@ closeOver c (Var v)  = do
                   return $ Lam vars [Var v `App` map Var (c : tail vars)]
     else return $ Var v
 closeOver _ (Lit l) = return $ Lit l
-closeOver c (App f args) = App <$> closeOver c f <*> mapM (closeOver c) args
+closeOver c (App f args) = join $ liftM2 handleFun (closeOver c f) (mapM (closeOver c) args)
+  where handleFun (Var f) args = do
+          res <- M.lookup f <$> get
+          case res of
+            Just{} ->  return $ Var f `App` (Var c : args)
+            Nothing -> return $ Var f `App` args
+        handleFun (Prim p) args = return $ Prim p `App` args
+        handleFun (Lam{}) args = error "This is very wrong, ClosureConversion found an unlifted lambda. Time to cry"
 closeOver c (If test true false) = If <$> closeOver c test
                                       <*> closeOver c true
                                       <*> closeOver c false
@@ -66,7 +73,7 @@ closeOver c (Lam vars exps) = do
   lambdaName <- Gen <$> gen
   lifted <- liftedLam
   modify (M.insert lambdaName lifted)
-  return $ Lam vars [Var lambdaName `App` map Var (c : vars)]
+  return $ Var lambdaName
   where liftedLam :: SExpM; liftedLam = do
           closName <- Gen <$> gen
           newClos  <- Gen <$> gen

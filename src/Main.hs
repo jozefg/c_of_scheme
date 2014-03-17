@@ -22,5 +22,5 @@ main = return ()
 x = Def (SVar "x") (Lit $ SInt 1)
 y = Def (SVar "y") (Lit $ SInt 1)
 
-inner = Lam [SVar "i"] [Prim Plus `App` [Prim Plus `App` [Var (SVar "x"), Var (SVar "y"), Var (SVar "i")]]]
+inner = Lam [SVar "i"] [Prim Plus `App`  [Var (SVar "y"), Var (SVar "i")]]
 outer = Def (SVar "foo") $ inner `App` [Lit (SInt 1)]
