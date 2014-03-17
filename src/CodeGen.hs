@@ -28,6 +28,9 @@ generate :: SExp ClosPrim -> CodeGenM CExpr
 generate (Var v) = fromString <$> mangle v
 generate (App f args) = (#) <$> generate f <*> mapM generate args
 generate (If test true false) = ternary <$> generate test <*> generate true <*> generate false
+generate (Prim (NewClos v)) = do
+  name <- mangle v
+  return . fromString $ "<<primitive: NewClos " ++ name ++ ">>"
 generate (Prim p) = return . fromString $ "<<primitive: " ++ show p ++ ">>"
 generate (Lit l)  = return . fromString $ "<<literal: " ++ show l ++ ">>"
 generate (Set v e) = ("set"#) . (:[]) <$> generate e
