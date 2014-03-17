@@ -17,12 +17,9 @@ mangle :: Var -> CodeGenM String
 mangle v = do
   res <- M.lookup v <$> get
   case res of
-    Nothing | isLegal v -> modify (M.insert v (show v)) >> return (show v)
-            | otherwise -> makeLegal >>= modify . M.insert v >> (M.! v) <$> get
-    Just s -> return s
-  where isLegal (SVar{}) = True
-        isLegal _        = False
-        makeLegal = ("__" ++) . show <$> gen 
+    Nothing -> makeLegal >>= modify . M.insert v >> (M.! v) <$> get
+    Just s  -> return s
+  where makeLegal = ("__" ++) . show <$> gen
 
 generate :: SExp ClosPrim -> CodeGenM CExpr
 generate (Var v) = fromString <$> mangle v
