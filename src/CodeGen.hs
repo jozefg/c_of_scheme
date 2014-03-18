@@ -14,7 +14,7 @@ scm_t :: CDeclr -> Maybe CExpr -> CDecl
 scm_t = decl (CTypeSpec (CTypeDef "scm_t" undefNode))
 
 codegen :: [SDec ClosPrim] -> [CExtDecl]
-codegen = runGen . flip evalStateT (M.empty) . mapM generateSDec
+codegen = runGen . flip evalStateT (M.empty) . fmap concat . mapM generateSDec
 
 mangle :: Var -> CodeGenM String
 mangle v = do
@@ -55,23 +55,24 @@ generate (App f@(Prim{}) args) = (#) <$> generate f <*> mapM generate args
 generate (Set v e) = (<--) <$> fmap fromString (mangle v) <*> generate e
 generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
 
-generateSDec :: SDec ClosPrim -> CodeGenM CExtDecl
+generateSDec :: SDec ClosPrim -> CodeGenM [CExtDecl]
 generateSDec (Def v (Lam args exps)) = do
-  funName <- fromString <$> mangle v
+  varName <- fromString <$> mangle v
+  funName   <- Gen <$> gen >>= mangle
   arrayName <- Gen <$> gen >>= mangle
   vars <- map (scm_t . fromString) <$> mapM mangle args
   body <- map intoB <$> mapM generate exps
   let init = zipWith (assignFrom $ fromString arrayName) vars [0..]
-  return . export $
-    fun [voidTy] funName [scm_t . ptr $ fromString arrayName]
-    (block $ init ++
-     head body : intoB ("free"#[fromString arrayName]) : tail body)
+      var  = scm_t varName .= "mkLam"#[fromString funName]
+      lam  = fun [voidTy] (fromString funName) [scm_t . ptr $ fromString arrayName] $
+             block $ init ++ head body : intoB ("free"#[fromString arrayName]) : tail body
+  return $ [export lam, export var]
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
 generateSDec (Def v (App _ [e])) = do
   name <- fromString <$> mangle v
   body <- generate e
-  return . export $ scm_t name .= body
+  return [export $ scm_t name .= body]
 generateSDec (Def v e) = do
   name <- fromString <$> mangle v
   body <- generate e
-  return . export $ scm_t name .= body
+  return [export $ scm_t name .= body]
