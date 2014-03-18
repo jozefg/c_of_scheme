@@ -14,7 +14,7 @@ cabal-version:       >=1.10
 executable scheme2c
   main-is:             Main.hs
   other-modules:       Gen
-  build-depends:       base >=4.6 && <4.7, mtl>= 2.0, containers, parsec>= 3.0
+  build-depends:       base >=4.6 && <4.7, mtl>= 2.0, containers, c-dsl
   hs-source-dirs:      src
   default-language:    Haskell2010
   

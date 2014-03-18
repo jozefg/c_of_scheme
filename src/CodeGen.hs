@@ -76,3 +76,4 @@ generateSDec (Def v e) = do
   name <- fromString <$> mangle v
   body <- generate e
   return [export $ scm_t name .= body]
+
