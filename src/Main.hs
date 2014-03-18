@@ -29,3 +29,4 @@ mut = Def (SVar "mut") $
    Lam [] [Set (SVar "x") (Lit $ SInt 2)
           ,Prim Display `App` [Var $ SVar "x"]]
    `App` []
+man = Def (SVar "main") (Prim Display `App` [Lit $ SInt 0])

@@ -81,3 +81,13 @@ int scm_eq_raw(scm_t l, scm_t r){
 scm_t scm_eq(scm_t l, scm_t r){
   return mkInt(scm_eq_raw(l, r));
 }
+
+scm_t display(scm_t s){
+  switch(s->state){
+  case 0: printf("%d\n", s->val.scm_int);
+  case 1: printf("%s", s->val.scm_sym);
+  case 2: case 3: printf("<<opaque type>>\n");
+  }
+  return s;
+}
+  
