@@ -45,13 +45,6 @@ scm_t mkSym(char *c){
   return scm_s;
 }
 
-scm_t mkCons(scm_t h, scm_t t){
-  scm_t scm_s = scm_malloc();
-  struct scheme_val s = {.state = 2, {.scm_cons = {.head = h, .tail = t}}};
-  *scm_s = s;
-  return scm_s;
-}
-
 scm_t mkClos(int i, ...){
   va_list ap;
   int x;
@@ -98,4 +91,88 @@ scm_t display(scm_t s){
   }
   return s;
 }
-  
+
+scm_t scm_apply(int i, scm_t f, ...){
+  int x;
+  va_list va;
+  scm_t *arg_list = malloc(sizeof(scm_t) * i);
+  va_start(va, f);
+  for(x = 0; x < i; ++x){
+    arg_list[i] = va_arg(va, scm_t);
+  }
+  if(f->state != 4){
+    printf("Attempted to apply nonfunction");
+    exit(1);
+  } else {
+    f->val.scm_lam(arg_list);
+  }
+  return NULL; // This is bad.
+}
+
+scm_t scm_plus(scm_t l, scm_t r){
+  if(l->state != 0 || r->state !=0){
+    printf("Attempted to add non-numbers\n");
+    exit(1);
+  }
+  return mkInt(l->val.scm_int + r->val.scm_int);
+}
+scm_t scm_sub(scm_t r, scm_t l){
+  if(l->state != 0 || r->state !=0){
+    printf("Attempted to subtract non-numbers\n");
+    exit(1);
+  }
+  return mkInt(l->val.scm_int - r->val.scm_int);
+}
+
+scm_t scm_mult(scm_t l, scm_t r){
+  if(l->state != 0 || r->state !=0){
+    printf("Attempted to multiply non-numbers\n");
+    exit(1);
+  }
+  return mkInt(l->val.scm_int * r->val.scm_int);
+}
+
+scm_t scm_div(scm_t l, scm_t r){
+  if(l->state != 0 || r->state !=0){
+    printf("Attempted to divide non-numbers\n");
+    exit(1);
+  }
+  return mkInt(l->val.scm_int / r->val.scm_int);
+}
+
+
+scm_t scm_cons(scm_t h, scm_t t){
+  scm_t scm_s = scm_malloc();
+  struct scheme_val s = {.state = 2,
+                         {.scm_cons = {.head = h, .tail = t}}};
+  *scm_s = s;
+  return scm_s;
+}
+
+
+scm_t scm_car(scm_t s){
+  if(s->state != 3){
+    printf("Attempted to car non-pair\n");
+    exit(1);
+  }
+  return s->val.scm_cons.head;
+}
+scm_t scm_cdr(scm_t s){
+  if(s->state != 3){
+    printf("Attempted to car non-pair\n");
+    exit(1);
+  }
+  return s->val.scm_cons.tail;
+}
+
+void scm_halt(scm_t l){exit(0);}
+
+scm_t scm_select_clos(scm_t ind, scm_t clos){
+  return clos->val.scm_clos.closed[ind->val.scm_int];
+}
+scm_t scm_write_clos(scm_t ind, scm_t val, scm_t clos){
+  return clos->val.scm_clos.closed[ind->val.scm_int] = val;
+}
+
+scm_t scm_top_clos = NULL;
+

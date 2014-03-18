@@ -44,7 +44,7 @@ void scm_halt(scm_t);
 */
 
 scm_t scm_select_clos(scm_t, scm_t);
-void scm_write_clos(scm_t, scm_t, scm_t);
+scm_t scm_write_clos(scm_t, scm_t, scm_t);
 scm_t scm_top_clos;
 
 // #endif
