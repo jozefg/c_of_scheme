@@ -85,8 +85,8 @@ scm_t scm_eq(scm_t l, scm_t r){
 
 scm_t display(scm_t s){
   switch(s->state){
-  case 0: printf("%d\n", s->val.scm_int);
-  case 1: printf("%s\n", s->val.scm_sym);
+  case 0: printf("%d\n", s->val.scm_int); break;
+  case 1: printf("%s\n", s->val.scm_sym); break;
   case 2: case 3: printf("<<opaque type>>\n");
   }
   return s;
@@ -110,14 +110,14 @@ scm_t scm_apply(int i, scm_t f, ...){
 }
 
 scm_t scm_plus(scm_t l, scm_t r){
-  if(l->state != 0 || r->state !=0){
+  if(l->state || r->state){
     printf("Attempted to add non-numbers\n");
     exit(1);
   }
   return mkInt(l->val.scm_int + r->val.scm_int);
 }
 scm_t scm_sub(scm_t r, scm_t l){
-  if(l->state != 0 || r->state !=0){
+  if(l->state || r->state){
     printf("Attempted to subtract non-numbers\n");
     exit(1);
  }
@@ -125,7 +125,7 @@ scm_t scm_sub(scm_t r, scm_t l){
 }
 
 scm_t scm_mult(scm_t l, scm_t r){
-  if(l->state != 0 || r->state !=0){
+  if(l->state || r->state){
     printf("Attempted to multiply non-numbers\n");
     exit(1);
   }
@@ -133,7 +133,7 @@ scm_t scm_mult(scm_t l, scm_t r){
 }
 
 scm_t scm_div(scm_t l, scm_t r){
-  if(l->state != 0 || r->state !=0){
+  if(l->state || r->state){
     printf("Attempted to divide non-numbers\n");
     exit(1);
   }
@@ -151,14 +151,14 @@ scm_t scm_cons(scm_t h, scm_t t){
 
 
 scm_t scm_car(scm_t s){
-  if(s->state != 3){
+  if(s->state != 2){
     printf("Attempted to car non-pair\n");
     exit(1);
   }
   return s->val.scm_cons.head;
 }
 scm_t scm_cdr(scm_t s){
-  if(s->state != 3){
+  if(s->state != 2){
     printf("Attempted to car non-pair\n");
     exit(1);
   }
@@ -168,6 +168,7 @@ scm_t scm_cdr(scm_t s){
 void scm_halt(scm_t l){exit(0);}
 
 scm_t scm_select_clos(scm_t ind, scm_t clos){
+  if(clos->state != 
   return clos->val.scm_clos.closed[ind->val.scm_int];
 }
 scm_t scm_write_clos(scm_t ind, scm_t val, scm_t clos){
