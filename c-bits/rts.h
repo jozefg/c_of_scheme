@@ -7,7 +7,7 @@
 */
 
 typedef struct scheme_val* scm_t;
-typedef struct scm_t* (*lam_t)(scm_t*);
+typedef struct void (*lam_t)(scm_t*);
 /* User primitives, these are wrapped by implicit
    scheme top level declaratios in Scheme.
 
@@ -34,10 +34,6 @@ scm_t scm_cons(scm_t, scm_t);
 scm_t scm_car(scm_t);
 scm_t scm_cdr(scm_t);
 
-/* Safely halt the scheme program, the
-   scheme value is ignored but necessary since
-   all toplevel declarations have the potential to call this
-*/
 void scm_halt(scm_t);
 
 /* Closure related RTS stuff
@@ -47,8 +43,8 @@ void scm_halt(scm_t);
    them because callCC is mean.
 */
 
-scm_t scm_select_clos(int, scm_t);
-void scm_write_clos(int, scm_t, scm_t);
+scm_t scm_select_clos(scm_t, scm_t);
+void scm_write_clos(scm_t, scm_t, scm_t);
 scm_t scm_top_clos;
 
 // #endif

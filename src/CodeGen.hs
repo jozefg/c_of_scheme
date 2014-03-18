@@ -9,8 +9,9 @@ import qualified Data.Map as M
 import Language.C.DSL
 import Data.String
 import Data.Foldable (foldMap)
+import Data.Maybe (catMaybes)
 
-type CodeGenM = WriterT [(String, CExpr)] (StateT (M.Map Var String) Gen)
+type CodeGenM = WriterT [(CDecl, String, CExpr)] (StateT (M.Map Var String) Gen)
 
 scm_t :: CDeclr -> Maybe CExpr -> CDecl
 scm_t = decl (CTypeSpec (CTypeDef "scm_t" undefNode))
@@ -20,10 +21,11 @@ codegen = runGen
           . flip evalStateT (M.empty)
           . fmap (uncurry makeMain)
           . runWriterT
-          . fmap concat
+          . fmap catMaybes
           . mapM generateSDec
-  where makeMain decls inits = decls ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
-        makeBlock = hBlock . foldMap (\(var, expr) -> [fromString var <-- expr])
+  where makeMain decls inits = makePrototypes inits ++ decls ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
+        makeBlock = hBlock . foldMap (\(_, var, expr) -> [fromString var <-- expr])
+        makePrototypes = map export . map (\(a, _, _) -> a)
 
 mangle :: Var -> CodeGenM String
 mangle v = do
@@ -64,28 +66,29 @@ generate (App f@(Prim{}) args) = (#) <$> generate f <*> mapM generate args
 generate (Set v e) = (<--) <$> fmap fromString (mangle v) <*> generate e
 generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
 
-generateSDec :: SDec ClosPrim -> CodeGenM [CExtDecl]
+generateSDec :: SDec ClosPrim -> CodeGenM (Maybe CExtDecl)
 generateSDec (Def v (Lam args exps)) = do
   varName   <- mangle v
   funName   <- Gen <$> gen >>= mangle
   arrayName <- Gen <$> gen >>= mangle
   vars <- map (scm_t . fromString) <$> mapM mangle args
   body <- map intoB <$> mapM generate exps
-  tell [(varName, "mkLam"#[fromString funName])]
+  -- Export the variable containing the lambdas
+  tell [(scm_t (fromString varName) Nothing, varName, "mkLam"#[fromString funName])]
+  -- Build the corresponding function
   let init = zipWith (assignFrom $ fromString arrayName) vars [0..]
-      var  = scm_t (fromString varName) Nothing
       lam  = fun [voidTy] (fromString funName) [scm_t . ptr $ fromString arrayName] $
              block $ init ++ head body : intoB ("free"#[fromString arrayName]) : tail body
-  return $ [export lam, export var]
+  return . Just $ export lam
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
 generateSDec (Def v (App _ [e])) = do
   name <- mangle v
   body <- generate e
-  tell [(name, body)]
-  return [export $ scm_t (fromString name) .= 0]
+  tell [(scm_t (fromString name) Nothing, name, body)]
+  return Nothing
 generateSDec (Def v e) = do
   name <- mangle v
   body <- generate e
-  tell [(name, body)]
-  return [export $ scm_t (fromString name) .= 0]
+  tell [(scm_t (fromString name) Nothing, name, body)]
+  return Nothing
 
