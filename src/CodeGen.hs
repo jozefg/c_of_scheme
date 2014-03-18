@@ -59,7 +59,7 @@ generate (Prim (CPSPrim (UserPrim p))) = return $ case p of
   Display -> "display"
 generate (Prim TopClos) = return $ "scm_top_clos"
 generate (Lit (SInt i))  = return $ "mkInt"#[fromInteger . toInteger $ i]
-generate (Lit (SSym s))  = return $ "mkSym"#[fromString $ s]
+generate (Lit (SSym s))  = return $ "mkSym"#[fromString $ show s]
 generate (App f@(Var{}) args) = ("scm_apply"#) . (numArgs:) <$> mapM generate (f:args)
   where numArgs = fromInteger . toInteger . length $ args
 generate (App f@(Prim{}) args) = (#) <$> generate f <*> mapM generate args
