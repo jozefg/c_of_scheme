@@ -19,14 +19,4 @@ main = return ()
       1))
 -}
      
-x = Def (SVar "x") (Lit $ SInt 1)
-y = Def (SVar "y") (Lit $ SInt 1)
-
-inner = Lam [SVar "i"] [Prim Plus `App`  [Var (SVar "y"), Var (SVar "i")]]
-outer = Def (SVar "foo") $ inner `App` [Lit (SInt 1)]
-
-mut = Def (SVar "mut") $
-   Lam [] [Set (SVar "x") (Lit $ SInt 2)
-          ,Prim Display `App` [Var $ SVar "x"]]
-   `App` []
 man = Def (SVar "main") (Prim Display `App` [Lit $ SInt 0])

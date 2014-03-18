@@ -34,14 +34,14 @@ scm_t scm_malloc(){
 scm_t mkInt(int i){
   scm_t scm_i = scm_malloc();
   struct scheme_val s = {.state = 0, {.scm_int = i}};
-  *scm_i = s;
+  memcpy(scm_i, &s, sizeof *scm_i);
   return scm_i;
 }
 
 scm_t mkSym(char *c){
   scm_t scm_s = scm_malloc();
   struct scheme_val s = {.state = 1, {.scm_sym = c}};
-  *scm_s = s;
+  memcpy(scm_s, &s, sizeof *scm_s);
   return scm_s;
 }
 
@@ -58,14 +58,14 @@ scm_t mkClos(int i, ...){
   }
   va_end(ap);
   s.val.scm_clos.closed = closed;
-  *result = s;
+  memcpy(result, &s, sizeof *result);
   return result;
 }
 
 scm_t mkLam(lam_t l){
   scm_t scm_s = scm_malloc();
   struct scheme_val s = {.state = 4, {.scm_lam = l}};
-  *scm_s = s;
+  memcpy(scm_s, &s, sizeof *scm_s);
   return scm_s;
 }
 
@@ -86,7 +86,7 @@ scm_t scm_eq(scm_t l, scm_t r){
 scm_t display(scm_t s){
   switch(s->state){
   case 0: printf("%d\n", s->val.scm_int);
-  case 1: printf("%s", s->val.scm_sym);
+  case 1: printf("%s\n", s->val.scm_sym);
   case 2: case 3: printf("<<opaque type>>\n");
   }
   return s;
@@ -120,7 +120,7 @@ scm_t scm_sub(scm_t r, scm_t l){
   if(l->state != 0 || r->state !=0){
     printf("Attempted to subtract non-numbers\n");
     exit(1);
-  }
+ }
   return mkInt(l->val.scm_int - r->val.scm_int);
 }
 
@@ -145,7 +145,7 @@ scm_t scm_cons(scm_t h, scm_t t){
   scm_t scm_s = scm_malloc();
   struct scheme_val s = {.state = 2,
                          {.scm_cons = {.head = h, .tail = t}}};
-  *scm_s = s;
+  memcpy(scm_s, &s, sizeof *scm_s);
   return scm_s;
 }
 
