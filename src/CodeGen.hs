@@ -3,18 +3,27 @@ module CodeGen where
 import Gen
 import AST
 import Control.Monad.State
+import Control.Monad.Writer
 import Control.Applicative
 import qualified Data.Map as M
 import Language.C.DSL
 import Data.String
+import Data.Foldable (foldMap)
 
-type CodeGenM = StateT (M.Map Var String) Gen
+type CodeGenM = WriterT [(String, CExpr)] (StateT (M.Map Var String) Gen)
 
 scm_t :: CDeclr -> Maybe CExpr -> CDecl
 scm_t = decl (CTypeSpec (CTypeDef "scm_t" undefNode))
 
 codegen :: [SDec ClosPrim] -> [CExtDecl]
-codegen = runGen . flip evalStateT (M.empty) . fmap concat . mapM generateSDec
+codegen = runGen
+          . flip evalStateT (M.empty)
+          . fmap (uncurry makeMain)
+          . runWriterT
+          . fmap concat
+          . mapM generateSDec
+  where makeMain decls inits = decls ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
+        makeBlock = hBlock . foldMap (\(var, expr) -> [fromString var <-- expr])
 
 mangle :: Var -> CodeGenM String
 mangle v = do
@@ -57,23 +66,26 @@ generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BL
 
 generateSDec :: SDec ClosPrim -> CodeGenM [CExtDecl]
 generateSDec (Def v (Lam args exps)) = do
-  varName <- fromString <$> mangle v
+  varName   <- mangle v
   funName   <- Gen <$> gen >>= mangle
   arrayName <- Gen <$> gen >>= mangle
   vars <- map (scm_t . fromString) <$> mapM mangle args
   body <- map intoB <$> mapM generate exps
+  tell [(varName, "mkLam"#[fromString funName])]
   let init = zipWith (assignFrom $ fromString arrayName) vars [0..]
-      var  = scm_t varName .= "mkLam"#[fromString funName]
+      var  = scm_t (fromString varName) Nothing
       lam  = fun [voidTy] (fromString funName) [scm_t . ptr $ fromString arrayName] $
              block $ init ++ head body : intoB ("free"#[fromString arrayName]) : tail body
   return $ [export lam, export var]
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
 generateSDec (Def v (App _ [e])) = do
-  name <- fromString <$> mangle v
+  name <- mangle v
   body <- generate e
-  return [export $ scm_t name .= body]
+  tell [(name, body)]
+  return [export $ scm_t (fromString name) .= 0]
 generateSDec (Def v e) = do
-  name <- fromString <$> mangle v
+  name <- mangle v
   body <- generate e
-  return [export $ scm_t name .= body]
+  tell [(name, body)]
+  return [export $ scm_t (fromString name) .= 0]
 
