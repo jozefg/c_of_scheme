@@ -37,6 +37,9 @@ instance (MonadGen m, Monad m) => MonadGen (StateT s m)  where
 instance (MonadGen m, Monad m) => MonadGen (ReaderT s m)  where
   gen = lift gen
 
+instance (MonadGen m, Monad m, Monoid s) => MonadGen (WriterT s m)  where
+  gen = lift gen
+
 runGenT :: Monad m => GenT m a -> m a
 runGenT = flip evalStateT 0 . unGenT
 
