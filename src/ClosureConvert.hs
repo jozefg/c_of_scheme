@@ -22,11 +22,11 @@ type ClosVar  = M.Map Var (SExp ClosPrim)
 type ClosM = StateT ClosVar (ReaderT ClosPath Gen)
 type SExpM = ClosM (SExp ClosPrim)
 
-runClosM :: ClosM [SDec ClosPrim]  -> [SDec ClosPrim]
-runClosM = combine . runGen . flip runReaderT M.empty . flip runStateT M.empty
+runClosM :: ClosM [SDec ClosPrim]  -> Gen [SDec ClosPrim]
+runClosM = fmap combine . flip runReaderT M.empty . flip runStateT M.empty
   where combine (results, closVars) = map (uncurry Def) (M.toList closVars) ++ results
 
-convert :: Gen [SDec CPSPrim] -> [SDec ClosPrim]
+convert :: Gen [SDec CPSPrim] -> Gen [SDec ClosPrim]
 convert decs = runClosM $ do
   undefinedClos <- Gen <$> gen
   newDecs <- lift (lift decs) >>= convertDecs undefinedClos

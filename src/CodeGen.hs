@@ -16,13 +16,13 @@ type CodeGenM = WriterT [(CDecl, String, CExpr)] (StateT (M.Map Var String) Gen)
 scm_t :: CDeclr -> Maybe CExpr -> CDecl
 scm_t = decl (CTypeSpec (CTypeDef "scm_t" undefNode))
 
-codegen :: [SDec ClosPrim] -> [CExtDecl]
+codegen :: Gen [SDec ClosPrim] -> [CExtDecl]
 codegen = runGen
           . flip evalStateT (M.empty)
           . fmap (uncurry makeMain)
           . runWriterT
           . fmap catMaybes
-          . mapM generateSDec
+          . (mapM generateSDec <=< lift . lift)
   where makeMain decls inits = makePrototypes inits ++ decls ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
         makeBlock = hBlock . foldMap (\(_, var, expr) -> [fromString var <-- expr])
         makePrototypes = map export . map (\(a, _, _) -> a)
