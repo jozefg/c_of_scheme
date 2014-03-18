@@ -7,6 +7,7 @@
 */
 
 typedef struct scheme_val* scm_t;
+typedef struct scm_t* (*lam_t)(scm_t*);
 /* User primitives, these are wrapped by implicit
    scheme top level declaratios in Scheme.
 
@@ -17,11 +18,12 @@ typedef struct scheme_val* scm_t;
 scm_t mkInt(int i);
 scm_t mkSym(char* s);
 scm_t mkClos(int i, ...);
+scm_t mkLam (lam_t l);
 
 scm_t scm_eq(scm_t, scm_t);
 int scm_eq_raw(scm_t, scm_t);
 scm_t display(scm_t);
-void scm_apply(int i, scm_t f, ...);
+scm_t scm_apply(int i, scm_t f, ...);
 
 scm_t scm_plus(scm_t, scm_t);
 scm_t scm_sub(scm_t, scm_t);

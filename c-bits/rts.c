@@ -22,6 +22,7 @@ struct scheme_val {
     char*  scm_sym;
     cons_t scm_cons;
     clos_t scm_clos;
+    lam_t scm_lam;
   } val;
 };
 
@@ -66,6 +67,13 @@ scm_t mkClos(int i, ...){
   s.val.scm_clos.closed = closed;
   *result = s;
   return result;
+}
+
+scm_t mkLam(lam_t l){
+  scm_t scm_s = scm_malloc();
+  struct scheme_val s = {.state = 4, {.scm_lam = l}};
+  *scm_s = s;
+  return scm_s;
 }
 
 int scm_eq_raw(scm_t l, scm_t r){
