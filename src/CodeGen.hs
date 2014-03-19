@@ -8,7 +8,7 @@ import Control.Applicative
 import qualified Data.Map as M
 import Language.C.DSL
 import Data.String
-import Data.Foldable (foldMap)
+import Data.Foldable (foldMap, foldl')
 import Data.Maybe (catMaybes)
 
 type CodeGenM = WriterT [(CDecl, String, CExpr)] (StateT (M.Map Var String) Gen)
@@ -39,13 +39,10 @@ generate :: SExp ClosPrim -> CodeGenM CExpr
 generate (Var v) = fromString <$> mangle v
 generate (If test true false) = ternary <$> fmap isZero (generate test) <*> generate true <*> generate false
   where isZero e = Not `pre` "scm_eq_raw"#[e, "mkInt"#[0]]
-generate (App (Prim (NewClos v)) args) = do
-  name <- fromString . ("scm_t "++) <$> mangle v
-  escaping <- mapM generate args
-  return $ name <-- "mkClos"# (numArgs:escaping)
-  where numArgs = fromInteger . toInteger . length $ args
-generate (Prim SelectClos) = return "scm_select_clos"
 generate (Prim WriteClos)  = return "scm_write_clos"
+generate (Prim (SelectClos path var)) =  makePath path <$> generate (Var var)
+  where toCInt = fromInteger . toInteger
+        makePath = flip . foldl' $ \cexpr i -> "scm_select_clos"#[toCInt i, cexpr]
 generate (Prim (CPSPrim Halt)) = return "scm_halt"
 generate (Prim (CPSPrim (UserPrim p))) = return $ case p of
   AST.Plus -> "scm_plus"
@@ -57,12 +54,20 @@ generate (Prim (CPSPrim (UserPrim p))) = return $ case p of
   Car  -> "scm_car"
   Cdr  -> "scm_cdr"
   Display -> "display"
+  _ -> error "Found a CallCC where it shouldn't be"
 generate (Prim TopClos) = return $ "scm_top_clos"
 generate (Lit (SInt i))  = return $ "mkInt"#[fromInteger . toInteger $ i]
 generate (Lit (SSym s))  = return $ "mkSym"#[fromString $ show s]
+generate (App (Prim (NewClos v)) args) = do
+  name <- fromString . ("scm_t "++) <$> mangle v
+  escaping <- mapM generate args
+  return $ name <-- "mkClos"# (numArgs:escaping)
+  where numArgs = fromInteger . toInteger . length $ args
 generate (App f@(Var{}) args) = ("scm_apply"#) . (numArgs:) <$> mapM generate (f:args)
   where numArgs = fromInteger . toInteger . length $ args
-generate (App f@(Prim{}) args) = (#) <$> generate f <*> mapM generate args
+generate (App f@(Prim (SelectClos{})) args) = ("scm_apply"#) . (numArgs:) <$> mapM generate (f:args)
+  where numArgs = fromInteger . toInteger . length $ args
+generate (App f args) = (#) <$> generate f <*> mapM generate args
 generate (Set v e) = (<--) <$> fmap fromString (mangle v) <*> generate e
 generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
 

@@ -47,8 +47,8 @@ closeOver c (Var v)  = do
   closedFun <- isCloseFun v
   if closedVar then do
              path <- (M.! v) <$> ask
-             let lookupVar = foldl' (\k i -> Prim SelectClos `App` [Lit $ SInt i, k]) (Var c) path
-             return lookupVar
+             
+             return . Prim $ SelectClos path c
   else if closedFun then do
                   (Lam (_:vars) _) <- (M.! v) <$> get
                   return $ Lam vars [Var v `App` map Var (c : tail vars)]
@@ -61,7 +61,7 @@ closeOver c (App f args) = join $ liftM2 handleFun (closeOver c f) (mapM (closeO
             Just{} ->  return $ Var f `App` (Var c : args)
             Nothing -> return $ Var f `App` args
         handleFun (Prim p) args = return $ Prim p `App` args
-        handleFun (Lam{}) args = error "This is very wrong, ClosureConversion found an unlifted lambda. Time to cry"
+        handleFun (Lam{}) _ = error "This is very wrong, ClosureConversion found an unlifted lambda. Time to cry"
 closeOver c (If test true false) = If <$> closeOver c test
                                       <*> closeOver c true
                                       <*> closeOver c false
