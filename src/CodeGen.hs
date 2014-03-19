@@ -38,7 +38,7 @@ mangle v = do
 generate :: SExp ClosPrim -> CodeGenM CExpr
 generate (Var v) = fromString <$> mangle v
 generate (If test true false) = ternary <$> fmap isZero (generate test) <*> generate true <*> generate false
-  where isZero e = Not `pre` "scm_eq_raw"#[e, "mkInt"#[0]]
+  where isZero e = Not `pre` ("scm_eq_raw"#[e, "mkInt"#[0]])
 generate (Prim WriteClos)  = return "scm_write_clos"
 generate (Prim (SelectClos path var)) =  makePath path <$> generate (Var var)
   where toCInt = fromInteger . toInteger
