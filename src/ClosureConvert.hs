@@ -5,7 +5,6 @@ import qualified Data.Map as M
 import Control.Applicative
 import Control.Monad.Reader
 import Control.Monad.State
-import Data.List (foldl')
 -- Procedure for closure conversion:
 --        
 -- Lift each lambda to it's own toplevel function accepting an

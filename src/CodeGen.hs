@@ -88,6 +88,12 @@ generateSDec mVar (Def v (Lam args exps)) = do
              block $ init ++ head body : intoB ("free"#[fromString arrayName]) : tail body
   return . Just $ export lam
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
+generateSDec mutVar (Def v (App (Prim (CPSPrim Halt)) [e])) = do
+  name <- mangle v
+  output <- mangle mutVar
+  body <- generate e
+  tell [(scm_t (fromString name) Nothing, name, body)]
+  return $ Nothing
 generateSDec mutVar (Def v e) = do
   name <- mangle v
   output <- mangle mutVar

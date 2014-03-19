@@ -5,7 +5,8 @@ import AST
 
 cpsifySDec :: [SDec UserPrim] -> Gen [(Var, SDec CPSPrim)]
 cpsifySDec decs = mapM toCPS decs
-  where toCPS (Def v e)         = do
+  where toCPS (Def v l@(Lam{})) = (,) (SVar "") . Def v <$> cps l (Prim Halt)
+        toCPS (Def v e)        = do
           mutVar <- Gen <$> gen
           (,) mutVar . Def v <$> (freshLam (\res -> return $ Set mutVar res) >>= cps e)
 
