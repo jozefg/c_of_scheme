@@ -166,12 +166,12 @@ scm_t scm_cdr(scm_t s){
 
 void scm_halt(scm_t l){}
 
-scm_t scm_select_clos(scm_t ind, scm_t clos){
-  if(ind->state || clos->state != 3){
+scm_t scm_select_clos(int ind, scm_t clos){
+  if(clos->state != 3){
     printf("Attempted to select with non-closure or integer\n");
     exit(1);
   }
-  return clos->val.scm_clos.closed[ind->val.scm_int];
+  return clos->val.scm_clos.closed[ind];
 }
 scm_t scm_write_clos(scm_t ind, scm_t val, scm_t clos){
   if(ind->state || clos->state != 3){
