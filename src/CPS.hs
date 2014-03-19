@@ -3,8 +3,13 @@ import Control.Applicative
 import Gen
 import AST
 
-cpsifySDec :: [SDec UserPrim] -> Gen [SDec CPSPrim]
-cpsifySDec = mapM (\(Def nm e) -> Def nm <$> cps e (Prim Halt))
+cpsifySDec :: [SDec UserPrim] -> Gen [(Var, SDec CPSPrim)]
+cpsifySDec decs = do
+  mapM toCPS decs
+  where toCPS (Def v l@(Lam{})) = (,) (SVar "") . Def v <$> cps l (Prim Halt)
+        toCPS (Def v e)         = do
+          mutVar <- Gen <$> gen
+          (,) mutVar . Def v <$> (freshLam (\res -> return $ Set mutVar res) >>= cps e)
 
 (#) :: SExp p -> SExp p -> SExp p
 f # v = App f [v]

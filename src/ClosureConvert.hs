@@ -22,15 +22,15 @@ type ClosVar  = M.Map Var (SExp ClosPrim)
 type ClosM = StateT ClosVar (ReaderT ClosPath Gen)
 type SExpM = ClosM (SExp ClosPrim)
 
-runClosM :: ClosM [SDec ClosPrim]  -> Gen [SDec ClosPrim]
+runClosM :: ClosM [(Var, SDec ClosPrim)]  -> Gen [(Var, SDec ClosPrim)]
 runClosM = fmap combine . flip runReaderT M.empty . flip runStateT M.empty
-  where combine (results, closVars) = map (uncurry Def) (M.toList closVars) ++ results
+  where combine (results, closVars) = map ((,) (SVar "") . uncurry Def) (M.toList closVars) ++ results
 
-convert :: Gen [SDec CPSPrim] -> Gen [SDec ClosPrim]
+convert :: Gen [(Var, SDec CPSPrim)] -> Gen [(Var, SDec ClosPrim)]
 convert decs = runClosM $ do
   undefinedClos <- Gen <$> gen
   newDecs <- lift (lift decs) >>= convertDecs undefinedClos
-  return $ Def undefinedClos (Prim TopClos) : newDecs
+  return $ (SVar "", Def undefinedClos (Prim TopClos)) : newDecs
 
 isCloseVar :: Var -> ClosM Bool
 isCloseVar v = M.member v <$> ask
@@ -83,7 +83,6 @@ closeOver c (Lam vars exps) = do
         addClos m = local (M.union newVars . M.map (0:)) $ m
         newVars = M.fromList $ zip vars (map pure [1..])
 
-convertDecs :: Var -> [SDec CPSPrim] -> ClosM [SDec ClosPrim]
+convertDecs :: Var -> [(Var, SDec CPSPrim)] -> ClosM [(Var, SDec ClosPrim)]
 convertDecs c = mapM convertDec
-  where convertDec (Def n e) = Def n <$> closeOver c e
-    
+  where convertDec (v, Def n e) = (,) v . Def n <$> closeOver c e

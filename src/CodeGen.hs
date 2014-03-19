@@ -16,13 +16,13 @@ type CodeGenM = WriterT [(CDecl, String, CExpr)] (StateT (M.Map Var String) Gen)
 scm_t :: CDeclr -> Maybe CExpr -> CDecl
 scm_t = decl (CTypeSpec (CTypeDef "scm_t" undefNode))
 
-codegen :: Gen [SDec ClosPrim] -> [CExtDecl]
+codegen :: Gen [(Var, SDec ClosPrim)] -> [CExtDecl]
 codegen = runGen
           . flip evalStateT (M.empty)
           . fmap (uncurry makeMain)
           . runWriterT
           . fmap catMaybes
-          . (mapM generateSDec <=< lift . lift)
+          . (mapM (uncurry generateSDec) <=< lift . lift)
   where makeMain decls inits = makePrototypes inits ++ decls ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
         makeBlock = hBlock . foldMap (\(_, var, expr) -> [fromString var <-- expr])
         makePrototypes = map export . map (\(a, _, _) -> a)
@@ -66,8 +66,8 @@ generate (App f@(Prim{}) args) = (#) <$> generate f <*> mapM generate args
 generate (Set v e) = (<--) <$> fmap fromString (mangle v) <*> generate e
 generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
 
-generateSDec :: SDec ClosPrim -> CodeGenM (Maybe CExtDecl)
-generateSDec (Def v (Lam args exps)) = do
+generateSDec :: Var -> SDec ClosPrim -> CodeGenM (Maybe CExtDecl)
+generateSDec _ (Def v (Lam args exps)) = do
   varName   <- mangle v
   funName   <- Gen <$> gen >>= mangle
   arrayName <- Gen <$> gen >>= mangle
@@ -81,14 +81,12 @@ generateSDec (Def v (Lam args exps)) = do
              block $ init ++ head body : intoB ("free"#[fromString arrayName]) : tail body
   return . Just $ export lam
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
-generateSDec (Def v (App _ [e])) = do
+generateSDec mutVar (Def v e) = do
   name <- mangle v
+  output <- mangle mutVar
   body <- generate e
-  tell [(scm_t (fromString name) Nothing, name, body)]
-  return Nothing
-generateSDec (Def v e) = do
-  name <- mangle v
-  body <- generate e
-  tell [(scm_t (fromString name) Nothing, name, body)]
-  return Nothing
+  tell [(scm_t (fromString output) Nothing, output, 0)]
+  tell [(scm_t (fromString name) Nothing, name, comma [body, fromString output])]
+  return $ Nothing
+
 
