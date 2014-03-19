@@ -29,8 +29,10 @@ runClosM = fmap combine . flip runReaderT M.empty . flip runStateT M.empty
 convert :: Gen [(Var, SDec CPSPrim)] -> Gen [(Var, SDec ClosPrim)]
 convert decs = runClosM $ do
   undefinedClos <- Gen <$> gen
+  closMutVar    <- Gen <$> gen
   newDecs <- lift (lift decs) >>= convertDecs undefinedClos
-  return $ (SVar "", Def undefinedClos (Prim TopClos)) : newDecs
+  
+  return $ (closMutVar, Def undefinedClos (Set closMutVar $ Prim TopClos)) : newDecs
 
 isCloseVar :: Var -> ClosM Bool
 isCloseVar v = M.member v <$> ask

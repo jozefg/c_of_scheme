@@ -23,7 +23,7 @@ scm_t mkLam (lam_t l);
 scm_t scm_eq(scm_t, scm_t);
 int scm_eq_raw(scm_t, scm_t);
 scm_t display(scm_t);
-scm_t scm_apply(int i, scm_t f, ...);
+void scm_apply(int i, scm_t f, ...);
 
 scm_t scm_plus(scm_t, scm_t);
 scm_t scm_sub(scm_t, scm_t);

@@ -92,7 +92,7 @@ scm_t display(scm_t s){
   return s;
 }
 
-scm_t scm_apply(int i, scm_t f, ...){
+void scm_apply(int i, scm_t f, ...){
   int x;
   va_list va;
   scm_t *arg_list = malloc(sizeof(scm_t) * i);
@@ -106,7 +106,6 @@ scm_t scm_apply(int i, scm_t f, ...){
   } else {
     f->val.scm_lam(arg_list);
   }
-  return NULL; // This is bad.
 }
 
 scm_t scm_plus(scm_t l, scm_t r){
