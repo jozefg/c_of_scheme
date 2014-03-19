@@ -72,14 +72,16 @@ generate (Set v e) = (<--) <$> fmap fromString (mangle v) <*> generate e
 generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
 
 generateSDec :: Var -> SDec ClosPrim -> CodeGenM (Maybe CExtDecl)
-generateSDec _ (Def v (Lam args exps)) = do
+generateSDec mVar (Def v (Lam args exps)) = do
   varName   <- mangle v
+  output    <- mangle mVar
   funName   <- Gen <$> gen >>= mangle
   arrayName <- Gen <$> gen >>= mangle
   vars <- map (scm_t . fromString) <$> mapM mangle args
   body <- map intoB <$> mapM generate exps
   -- Export the variable containing the lambdas
-  tell [(scm_t (fromString varName) Nothing, varName, "mkLam"#[fromString funName])]
+  tell [(scm_t (fromString output) Nothing, output, "mkLam"#[fromString funName])]
+  tell [(scm_t (fromString varName) Nothing, varName, fromString output)]
   -- Build the corresponding function
   let init = zipWith (assignFrom $ fromString arrayName) vars [0..]
       lam  = fun [voidTy] (fromString funName) [scm_t . ptr $ fromString arrayName] $

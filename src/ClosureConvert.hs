@@ -23,8 +23,9 @@ type ClosM = StateT ClosVar (ReaderT ClosPath Gen)
 type SExpM = ClosM (SExp ClosPrim)
 
 runClosM :: ClosM [(Var, SDec ClosPrim)]  -> Gen [(Var, SDec ClosPrim)]
-runClosM = fmap combine . flip runReaderT M.empty . flip runStateT M.empty
-  where combine (results, closVars) = map ((,) (SVar "") . uncurry Def) (M.toList closVars) ++ results
+runClosM = combine <=< flip runReaderT M.empty . flip runStateT M.empty
+  where combine (results, closVars) = (++ results) <$> build (M.toList closVars) 
+        build = mapM (\(n, e) -> (,) <$> fmap Gen gen <*> pure (Def n e))
 
 convert :: Gen [(Var, SDec CPSPrim)] -> Gen [(Var, SDec ClosPrim)]
 convert decs = runClosM $ do
