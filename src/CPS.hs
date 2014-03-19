@@ -41,7 +41,7 @@ cps (App (Lam vars exps) args) k = unfoldArgs vars args
         unfoldArgs _ _ = error "Mismatch arguments in CPS conversion for literal lambda application"
 cps (App f args) k = runAll args $ useArgs f
   where useArgs (Prim p) cArgs = return $ k # App (Prim $ UserPrim p) cArgs
-        useArgs f          cArgs =
+        useArgs f        cArgs =
           freshLam (\f' -> return $ App f' (k:cArgs)) >>= cps f
 cps (Prim CallCC) k = do
   cont' <- cont
