@@ -3,7 +3,9 @@ import AST
 import CPS
 import ClosureConvert
 import CodeGen
+import Parser
 import Language.C.DSL (pretty)
+import System.Environment
 
 compile :: [SDec UserPrim] -> String
 compile = ("#include <stdlib.h>\n#include \"rts.h\"\n"++)
@@ -34,5 +36,9 @@ demoProgram :: [SDec UserPrim]
 demoProgram = [Def (SVar "_") $ Prim Display `App` [Lit $ SSym "Hello World"]]
 
 main :: IO ()
-main = return ()
-  
+main = do
+  [file] <- getArgs
+  res <- parseFile file
+  case res of
+    Left err -> print err
+    Right ast -> writeFile "out.c" $ compile ast
