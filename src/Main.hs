@@ -25,15 +25,12 @@ prims = [ Def (SVar "+") $ Lam [a, b] [Plus # [a', b']]
         , Def (SVar "cons") $ Lam [a, b] [Cons # [a', b']]
         , Def (SVar "display") $ Lam [a] [Display # [a']]
         , Def (SVar "car") $ Lam [a] [Car # [a']]
-        , Def (SVar "cdr") $ Lam [a] [Cdr # [a']]
-        , Def (SVar "call/cc") $ Lam [a] [CallCC # [a']]]
+        , Def (SVar "cdr") $ Lam [a] [Cdr # [a']]]
   where a = SVar "a"
         b = SVar "b"
         a' = Var a
         b' = Var b
         f # args = App (Prim f) args
-demoProgram :: [SDec UserPrim]
-demoProgram = [Def (SVar "_") $ Prim Display `App` [Lit $ SSym "Hello World"]]
 
 main :: IO ()
 main = do
@@ -41,4 +38,4 @@ main = do
   res <- parseFile file
   case res of
     Left err -> print err
-    Right ast -> writeFile "out.c" $ compile ast
+    Right ast -> print ast >> writeFile "out.c" (compile ast)
