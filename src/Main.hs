@@ -38,4 +38,4 @@ main = do
   res <- parseFile file
   case res of
     Left err -> print err
-    Right ast -> print ast >> writeFile "out.c" (compile ast)
+    Right ast -> writeFile "out.c" (compile ast)
