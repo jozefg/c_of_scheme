@@ -21,18 +21,17 @@ type ClosVar  = M.Map Var (SExp ClosPrim)
 type ClosM = StateT ClosVar (ReaderT ClosPath Gen)
 type SExpM = ClosM (SExp ClosPrim)
 
-runClosM :: ClosM [(Var, SDec ClosPrim)]  -> Gen [(Var, SDec ClosPrim)]
-runClosM = combine <=< flip runReaderT M.empty . flip runStateT M.empty
-  where combine (results, closVars) = (++ results) <$> build (M.toList closVars) 
-        build = mapM (\(n, e) -> (,) <$> fmap Gen gen <*> pure (Def n e))
+runClosM :: ClosM [SDec ClosPrim]  -> Gen [SDec ClosPrim]
+runClosM = fmap combine
+           . flip runReaderT M.empty
+           . flip runStateT M.empty
+  where combine (results, closVars) = map (uncurry Def) (M.toList closVars) ++ results
 
-convert :: Gen [(Var, SDec CPSPrim)] -> Gen [(Var, SDec ClosPrim)]
+convert :: Gen [SDec CPSPrim] -> Gen [SDec ClosPrim]
 convert decs = runClosM $ do
   undefinedClos <- Gen <$> gen
-  closMutVar    <- Gen <$> gen
   newDecs <- lift (lift decs) >>= convertDecs undefinedClos
-  
-  return $ (closMutVar, Def undefinedClos (Set closMutVar $ Prim TopClos)) : newDecs
+  return $ (Def undefinedClos (Set undefinedClos $ Prim TopClos)) : newDecs
 
 isCloseVar :: Var -> ClosM Bool
 isCloseVar v = M.member v <$> ask
@@ -85,15 +84,14 @@ closeOver c (Lam vars exps) = do
         addClos m = local (M.union newVars . M.map (0:)) $ m
         newVars = M.fromList $ zip vars (map pure [1..])
 
-convertDecs :: Var -> [(Var, SDec CPSPrim)] -> ClosM [(Var, SDec ClosPrim)]
+convertDecs :: Var -> [SDec CPSPrim] -> ClosM [SDec ClosPrim]
 convertDecs c = mapM convertDec
-  where convertDec (v, Def n (App (Prim Halt) [(Lam vars exps)])) = do
+  where convertDec (Def n (App (Prim Halt) [(Lam vars exps)])) = do
           newClos  <- Gen <$> gen
           exps'    <- addClos vars $ mapM (closeOver newClos) exps
-          return . (,) v . Def n .  Lam vars $ {- Different from above, we don't take the closure as parameter and
-                                                   use the top level closure -}
+          return . Def n .  Lam vars $ 
             Prim (NewClos newClos) `App` (map Var $ c : vars) : exps'
-        convertDec (v, Def n e) = (,) v . Def n <$> closeOver c e
+        convertDec (Def n e) = Def n <$> closeOver c e
         addClos vars m = local (M.union (newVars vars) . M.map (0:)) $ m
         newVars vars = M.fromList $ zip vars (map pure [1..])
 
