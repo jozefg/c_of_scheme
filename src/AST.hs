@@ -42,6 +42,7 @@ instance Show p => Show (SExp p) where
   show (App f args) = "(" ++ show f ++ " " ++ unwords (map show args) ++ ")"
   show (Var v) = show v
   show (Prim p) = show p
+  
 data SDec p = Def Var (SExp p)
             deriving(Eq)
 

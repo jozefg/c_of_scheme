@@ -2,7 +2,6 @@ module Parser where
 import Text.Parsec
 import Text.Parsec.String
 import Control.Applicative hiding ((<|>), many)
-import Control.Monad
 import AST
 
 parseNum :: Parser Int
@@ -48,13 +47,13 @@ parseApp = paren $ do
 parseLam :: Parser (SExp UserPrim)
 parseLam = paren $ do
   string "lambda" *> spaces
-  args <- paren $ many (spaced parseVar)
+  args <- spaced . paren $ many (spaced parseVar)
   Lam args <$> many1 (spaced parseExp)
   
 parseExp :: Parser (SExp UserPrim)
-parseExp = parseSInt
+parseExp = Var <$> parseVar
            <|> parseSym
-           <|> Var <$> parseVar
+           <|> parseSInt
            <|> try parseSet
            <|> try parseIf
            <|> try parseLam
