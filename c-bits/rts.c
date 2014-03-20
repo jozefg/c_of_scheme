@@ -168,7 +168,7 @@ void scm_halt(scm_t l){}
 
 scm_t scm_select_clos(int ind, scm_t clos){
   if(clos->state != 3){
-    printf("Attempted to select with non-closure or integer\n");
+    printf("Attempted to select with non-closure\n");
     exit(1);
   }
   return clos->val.scm_clos.closed[ind];
