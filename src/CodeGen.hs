@@ -8,8 +8,8 @@ import Control.Applicative
 import qualified Data.Map as M
 import Language.C.DSL
 import Data.String
-import Data.Foldable (foldMap, foldl')
 import Data.Maybe (catMaybes)
+import Data.List (foldl')
 
 type CodeGenM = WriterT [(CDecl, Maybe String, CExpr)] (StateT (M.Map Var String) Gen)
 
@@ -24,10 +24,8 @@ codegen = runGen
           . fmap catMaybes
           . (mapM generateSDec <=< lift . lift)
   where makeMain decls inits = makePrototypes inits ++ decls ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
-        makeBlock = hBlock . foldMap (\(_, var, expr) ->
-          case var of
-            Nothing -> [expr]
-            Just v  -> [fromString v <-- expr])
+        makeBlock = hBlock . concatMap buildExp
+        buildExp (_, v, expr) = maybe [expr] ((:[]) . (<--expr) . fromString) v
         makePrototypes = map export . map (\(a, _, _) -> a)
 
 mangle :: Var -> CodeGenM String
