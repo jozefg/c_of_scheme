@@ -15,6 +15,11 @@ typedef struct {
   struct scheme_val *tail;
 } cons_t;
 
+typedef struct {
+  struct scheme_val *clos;
+  lam_t fun;
+} closed_lam_t;
+
 struct scheme_val {
   int state;
   union {
@@ -22,7 +27,7 @@ struct scheme_val {
     char*  scm_sym;
     cons_t scm_cons;
     clos_t scm_clos;
-    lam_t scm_lam;
+    closed_lam_t scm_lam;
   } val;
 };
 
@@ -62,9 +67,9 @@ scm_t mkClos(int i, ...){
   return result;
 }
 
-scm_t mkLam(lam_t l){
+scm_t mkLam(scm_t c, lam_t l){
   scm_t scm_s = scm_malloc();
-  struct scheme_val s = {.state = 4, {.scm_lam = l}};
+  struct scheme_val s = {.state = 4, {.scm_lam = {c, l}}};
   memcpy(scm_s, &s, sizeof *scm_s);
   return scm_s;
 }
@@ -95,16 +100,17 @@ scm_t display(scm_t s){
 void scm_apply(int i, scm_t f, ...){
   int x;
   va_list va;
-  scm_t *arg_list = malloc(sizeof(scm_t) * i);
+  scm_t *arg_list = malloc(sizeof(scm_t) * i + 1);
   va_start(va, f);
-  for(x = 0; x < i; ++x){
+  for(x = 1; x < i+1; ++x){
     arg_list[x] = va_arg(va, scm_t);
   }
   if(f->state != 4){
     printf("Attempted to apply nonfunction");
     exit(1);
   } else {
-    f->val.scm_lam(arg_list);
+    arg_list[0] = f->val.scm_lam.clos;
+    f->val.scm_lam.fun(arg_list);
   }
 }
 
