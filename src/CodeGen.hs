@@ -23,10 +23,16 @@ codegen = runGen
           . runWriterT
           . fmap catMaybes
           . (mapM generateSDec <=< lift . lift)
-  where makeMain decls inits = makePrototypes inits ++ decls ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
+  where makeMain decls inits =
+          map makeFunProt decls
+          ++ map makeProt inits
+          ++ decls
+          ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
         makeBlock = hBlock . concatMap buildExp
         buildExp (_, v, expr) = maybe [expr] ((:[]) . (<--expr) . fromString) v
-        makePrototypes = map export . map (\(a, _, _) -> a)
+        makeFunProt (CFDefExt (CFunDef specs declr _ _ a)) =
+          export $ CDecl specs [(Just declr, Nothing, Nothing)] a
+        makeProt = export . (\(a, _, _) -> a)
 
 mangle :: Var -> CodeGenM String
 mangle v = do
@@ -44,6 +50,18 @@ generate (Prim WriteClos)  = return "scm_write_clos"
 generate (Prim (SelectClos path var)) =  makePath path <$> generate (Var var)
   where toCInt = fromInteger . toInteger
         makePath = flip . foldl' $ \cexpr i -> "scm_select_clos"#[toCInt i, cexpr]
+generate (Prim TopClos) = return $ "scm_top_clos"
+generate (App (App (Prim MkLam) closArgs) args) = do
+  closArgs' <- mapM generate closArgs
+  args'     <- mapM generate args
+  return $ "scm_apply"#([numArgs, "mkLam"#closArgs'] ++ args')
+  where numArgs = fromInteger . toInteger . length $ args
+generate (App (Prim MkLam) closArgs) = ("mkLam"#) <$> mapM generate closArgs 
+generate (App (Prim (NewClos v)) args) = do
+  name <- fromString . ("scm_t "++) <$> mangle v
+  escaping <- mapM generate args
+  return $ name <-- "mkClos"# (numArgs:escaping)
+  where numArgs = fromInteger . toInteger . length $ args
 generate (Prim (CPSPrim Halt)) = return "scm_halt"
 generate (Prim (CPSPrim (UserPrim p))) = return $ case p of
   AST.Plus -> "scm_plus"
@@ -56,34 +74,25 @@ generate (Prim (CPSPrim (UserPrim p))) = return $ case p of
   Cdr  -> "scm_cdr"
   Display -> "display"
   _ -> error "Found a CallCC where it shouldn't be"
-generate (Prim TopClos) = return $ "scm_top_clos"
-generate (Lit (SInt i))  = return $ "mkInt"#[fromInteger . toInteger $ i]
-generate (Lit (SSym s))  = return $ "mkSym"#[fromString $ show s]
-generate (App (Prim (NewClos v)) args) = do
-  name <- fromString . ("scm_t "++) <$> mangle v
-  escaping <- mapM generate args
-  return $ name <-- "mkClos"# (numArgs:escaping)
-  where numArgs = fromInteger . toInteger . length $ args
 generate (App f@(Var{}) args) = ("scm_apply"#) . (numArgs:) <$> mapM generate (f:args)
   where numArgs = fromInteger . toInteger . length $ args
 generate (App f@(Prim (SelectClos{})) args) = ("scm_apply"#) . (numArgs:) <$> mapM generate (f:args)
   where numArgs = fromInteger . toInteger . length $ args
 generate (App f args) = (#) <$> generate f <*> mapM generate args
 generate (Set v e) = (<--) <$> fmap fromString (mangle v) <*> generate e
+generate (Lit (SInt i))  = return $ "mkInt"#[fromInteger . toInteger $ i]
+generate (Lit (SSym s))  = return $ "mkSym"#[fromString $ show s]
 generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
 
 generateSDec :: SDec ClosPrim -> CodeGenM (Maybe CExtDecl)
 generateSDec (Def v (Lam args exps)) = do
   varName   <- mangle v
-  funName   <- Gen <$> gen >>= mangle
   arrayName <- Gen <$> gen >>= mangle
   vars <- map (scm_t . fromString) <$> mapM mangle args
   body <- map intoB <$> mapM generate exps
-  -- Export the variable containing the lambdas
-  tell [(scm_t (fromString varName) Nothing, Just varName, "mkLam"#[fromString funName])]
   -- Build the corresponding function
   let init = zipWith (assignFrom $ fromString arrayName) vars [0..]
-      lam  = fun [voidTy] (fromString funName) [scm_t . ptr $ fromString arrayName] $
+      lam  = fun [voidTy] (fromString varName) [scm_t . ptr $ fromString arrayName] $
              block $ init ++ head body : intoB ("free"#[fromString arrayName]) : tail body
   return . Just $ export lam
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
