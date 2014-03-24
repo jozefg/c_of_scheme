@@ -26,12 +26,11 @@ type SExpM    = ClosM (SExp ClosPrim)
 
 runClosM :: Gen FunVars -> ClosM [SDec ClosPrim]  -> Gen [SDec ClosPrim]
 runClosM decNames decs = decNames >>= flip runClos decs
-  where combine (results, closVars) = map (uncurry Def) closVars ++ results
-        runClos :: FunVars -> ClosM [SDec ClosPrim]  -> Gen [SDec ClosPrim]
-        runClos decNames' = fmap combine
+  where runClos decNames' = fmap combine
                             . flip runReaderT M.empty
                             . runWriterT
                             . flip evalStateT decNames'
+        combine (results, closVars) = map (uncurry Def) closVars ++ results
         
 
 convert :: Gen [SDec CPSPrim] -> Gen [SDec ClosPrim]
@@ -41,9 +40,8 @@ convert decs = runClosM (buildEnv <$> decs) $ do
   return $ (Def undefinedClos (Set undefinedClos $ Prim TopClos)) : newDecs
   where buildEnv = foldr addEnv S.empty . filter isLam
         isLam (Def _ (App (Prim Halt) [Lam{}])) = True
-        isLam _                                           = False
-        addEnv (Def n (App (Prim Halt) [Lam{}])) m =
-          S.insert n m
+        isLam _                                 = False
+        addEnv (Def n _) m = S.insert n m
 
 isCloseVar :: Var -> ClosM Bool
 isCloseVar v = M.member v <$> ask
@@ -65,9 +63,7 @@ closeOver c (Var v)  = do
            -- top level functions will simply discard it.
          else return $ Var v
 closeOver _ (Lit l) = return $ Lit l
-closeOver c (App f args) = handleFun <$> closeOver c f <*>  mapM (closeOver c) args
-  where handleFun (Var v) = App (Prim MkLam `App` [Var c, Var v])
-        handleFun p       = App p
+closeOver c (App f args) = App <$> closeOver c f <*> mapM (closeOver c) args
 closeOver c (If test true false) = If <$> closeOver c test
                                       <*> closeOver c true
                                       <*> closeOver c false
@@ -95,6 +91,7 @@ closeOver c (Lam vars exps) = do
 convertDecs :: Var -> [SDec CPSPrim] -> ClosM [SDec ClosPrim]
 convertDecs c = mapM convertDec
   where convertDec (Def n (App (Prim Halt) [(Lam vars exps)])) = do
+          modify (S.insert n)
           newClos  <- Gen <$> gen
           oldClos  <- Gen <$> gen
           exps'    <- addClos vars $ mapM (closeOver newClos) exps
