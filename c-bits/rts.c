@@ -164,7 +164,7 @@ scm_t scm_car(scm_t s){
 }
 scm_t scm_cdr(scm_t s){
   if(s->state != 2){
-    printf("Attempted to car non-pair\n");
+    printf("Attempted to cdr non-pair\n");
     exit(1);
   }
   return s->val.scm_cons.tail;
