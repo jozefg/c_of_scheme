@@ -90,7 +90,6 @@ closeOver c (Lam vars exps) = do
 convertDecs :: Var -> [SDec CPSPrim] -> ClosM [SDec ClosPrim]
 convertDecs c = mapM convertDec
   where convertDec (Def n (App (Prim Halt) [(Lam vars exps)])) = do
-          modify (S.insert n)
           newClos  <- Gen <$> gen
           oldClos  <- Gen <$> gen
           exps'    <- addClos vars $ mapM (closeOver newClos) exps
