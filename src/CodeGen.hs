@@ -92,11 +92,10 @@ generateSDec (Def v (Lam args exps)) = do
   body <- map intoB <$> mapM generate exps
   -- Build the corresponding function
   let init = zipWith (assignFrom $ fromString arrayName) vars [0..]
-      lam  = annotatedFun
+      lam  = fun
              [voidTy]
              (fromString varName)
-             [scm_t . ptr $ fromString arrayName]
-             ["noreturn"] $
+             [scm_t . ptr $ fromString arrayName] $
              block $ init ++ head body : intoB ("free"#[fromString arrayName]) : tail body
   return . Just $ export lam
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
