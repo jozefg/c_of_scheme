@@ -121,7 +121,7 @@ scm_t scm_plus(scm_t l, scm_t r){
   }
   return mkInt(l->val.scm_int + r->val.scm_int);
 }
-scm_t scm_sub(scm_t r, scm_t l){
+scm_t scm_sub(scm_t l, scm_t r){
   if(l->state || r->state){
     printf("Attempted to subtract non-numbers\n");
     exit(1);
