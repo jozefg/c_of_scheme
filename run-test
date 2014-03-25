@@ -1,5 +1,3 @@
-#! /usr/bin/sh
-
 cabal run test.scm;
 mv out.c c-bits/
 cd c-bits
