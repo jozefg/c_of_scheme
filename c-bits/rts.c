@@ -97,7 +97,7 @@ scm_t display(scm_t s){
   return s;
 }
 
-void scm_apply(int i, scm_t f, ...){
+void scm_apply(int i, scm_t f, ...) __attribute__((noreturn)){
   int x;
   va_list va;
   scm_t *arg_list = malloc(sizeof(scm_t) * i + 1);
