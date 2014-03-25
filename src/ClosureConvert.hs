@@ -19,12 +19,12 @@ import Control.Monad.State
 -- and pass it to all functions marked as needing it.
 
 type ClosPath = M.Map Var [Int]
-type FunVars  = S.Set Var
+type GlobalVars  = S.Set Var
 type Closures = [(Var, SExp ClosPrim)]
-type ClosM    = StateT FunVars (WriterT Closures (ReaderT ClosPath Gen))
+type ClosM    = StateT GlobalVars (WriterT Closures (ReaderT ClosPath Gen))
 type SExpM    = ClosM (SExp ClosPrim)
 
-runClosM :: Gen FunVars -> ClosM [SDec ClosPrim]  -> Gen [SDec ClosPrim]
+runClosM :: Gen GlobalVars -> ClosM [SDec ClosPrim]  -> Gen [SDec ClosPrim]
 runClosM decNames decs = decNames >>= flip runClos decs
   where runClos decNames' = fmap combine
                             . flip runReaderT M.empty
@@ -39,29 +39,29 @@ convert decs = runClosM (buildEnv <$> decs) $ do
   newDecs <- (lift . lift . lift) decs >>= convertDecs undefinedClos
   return $ (Def undefinedClos (Set undefinedClos $ Prim TopClos)) : newDecs
   where buildEnv = foldr addEnv S.empty . filter isLam
-        isLam (Def _ (App (Prim Halt) [Lam{}])) = True
-        isLam _                                 = False
+        isLam (Def _ (App (Prim Halt) [Lam{}])) = False
+        isLam _                                 = True
         addEnv (Def n _) m = S.insert n m
 
 isCloseVar :: Var -> ClosM Bool
 isCloseVar v = M.member v <$> ask
 
-isCloseFun :: Var -> ClosM Bool
-isCloseFun v = S.member v <$> get
+isGlobalVar :: Var -> ClosM Bool
+isGlobalVar v = S.member v <$> get
 
 closeOver :: Var -> SExp CPSPrim -> SExpM
 closeOver _ (Prim p) = return $ Prim (CPSPrim p)
 closeOver c (Var v)  = do
   closedVar <- isCloseVar v
-  isFun <- isCloseFun v
+  globalVar <- isGlobalVar v
   if closedVar then do
              path <- (M.! v) <$> ask
              return . Prim $ SelectClos path c
-    else if isFun then
-           return $ Prim MkLam `App` [Var c, Var v]
-           -- Note, we supply all functions with the current closure
-           -- top level functions will simply discard it.
-         else return $ Var v
+    else if globalVar then
+           return $ Var v
+         else return $ Prim MkLam `App` [Var c, Var v]
+              -- Note, we supply all functions with the current closure
+              -- top level functions will simply discard it.return $ Var v
 closeOver _ (Lit l) = return $ Lit l
 closeOver c (App f args) = App <$> closeOver c f <*> mapM (closeOver c) args
 closeOver c (If test true false) = If <$> closeOver c test
@@ -77,8 +77,7 @@ closeOver c (Lam vars exps) = do
   lambdaName <- Gen <$> gen
   lifted <- liftedLam
   tell [(lambdaName, lifted)]
-  modify (S.insert lambdaName)
-  return $ Var lambdaName
+  return $ Prim MkLam `App` [Var c, Var lambdaName]
   where liftedLam = do
           closName <- Gen <$> gen
           newClos  <- Gen <$> gen
