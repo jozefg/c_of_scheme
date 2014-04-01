@@ -1,7 +1,15 @@
-(define fact
-  (lambda (n)
-    (if (eq? n 0)
-        1
-        (* n (fact (- n 1))))))
+(define map
+  (lambda (f l)
+    (if (eq? l 'empty)
+        'empty
+        (cons (f (car l))
+              (map f (cdr l))))))
+            
+(define inc
+  (lambda (i)
+    (+ 1 i)))
 
-(define _ (display (fact 5)))
+(define l
+  (cons 1 (cons 2 (cons 3 'empty))))
+
+(define _ (display (map inc l)))
