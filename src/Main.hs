@@ -7,6 +7,7 @@ import Parser
 import Language.C.DSL (pretty)
 
 import System.Environment
+import System.Posix.User
 import System.Cmd
 
 compile :: [SDec UserPrim] -> String
@@ -37,8 +38,11 @@ prims = [ Def (SVar "+") $ Lam [a, b] [Plus # [a', b']]
 
 compileC :: String -> String -> IO ()
 compileC file code = do
-  writeFile (file ++ ".c") code
-  output <- system $ "gcc -I./c-bits " ++ file ++ ".c" ++ " c-bits/rts.c"
+  UserEntry{homeDirectory = hd} <- getRealUserID >>= getUserEntryForID
+  let cFile = file ++ ".c"
+      cBits = hd ++ "/.scheme2c/"
+      rts   = cBits ++ "rts.c"
+  output <- system $ "gcc -I" ++ unwords [cBits, cFile, rts] 
   print output
   
 

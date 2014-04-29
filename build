@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+
+cabal build; cp dist/build/scheme2c/scheme2c .
+if [ -d ~/.scheme2c ]
+then
+   rm -r ~/.scheme2c
+fi
+
+mkdir ~/.scheme2c
+cp c-bits/* ~/.scheme2c
