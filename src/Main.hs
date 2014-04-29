@@ -5,7 +5,9 @@ import ClosureConvert
 import CodeGen
 import Parser
 import Language.C.DSL (pretty)
+
 import System.Environment
+import System.Cmd
 
 compile :: [SDec UserPrim] -> String
 compile = ("#include <stdlib.h>\n#include \"rts.h\"\n"++)
@@ -32,10 +34,18 @@ prims = [ Def (SVar "+") $ Lam [a, b] [Plus # [a', b']]
         b' = Var b
         f # args = App (Prim f) args
 
+
+compileC :: String -> String -> IO ()
+compileC file code = do
+  writeFile (file ++ ".c") code
+  output <- system $ "gcc -I./c-bits " ++ file ++ ".c" ++ " c-bits/rts.c"
+  print output
+  
+
 main :: IO ()
 main = do
   [file] <- getArgs
   res <- parseFile file
   case res of
     Left err -> print err
-    Right ast -> writeFile "out.c" (compile ast)
+    Right ast -> compileC file (compile ast)

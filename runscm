@@ -1,2 +1,0 @@
-#!/usr/bin/bash
-cabal run $1 && mv out.c c-bits/ && cd c-bits && clang out.c rts.c && ./a.out
