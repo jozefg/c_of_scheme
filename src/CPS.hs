@@ -14,7 +14,7 @@ f # v = App f [v]
 
 runAll :: [SExp UserPrim] -> ([SExp CPSPrim] -> Gen (SExp CPSPrim)) -> Gen (SExp CPSPrim)
 runAll = go []
-  where go cpsed [] f = f cpsed
+  where go cpsed [] f = f (reverse cpsed)
         go cpsed (e:es) f =
           (freshLam $ \e' -> go (e':cpsed) es f) >>= cps e
 
@@ -26,8 +26,7 @@ cps (Lam args exps) k = do
   (k#) <$> newLam newCont
     where newLam newCont =
             Lam (newCont : args) . (:[]) <$>
-            runAll exps (return . (Var newCont#) . head)
-            -- run all expressions and return the result
+            runAll exps (return . (Var newCont#) . head) -- run all expressions and return the result
 cps (Var v) k = return $ k # Var v
 cps (If test true false) k =
   cont >>= cps test
@@ -39,8 +38,7 @@ cps (App (Lam vars exps) args) k = unfoldArgs vars args
         unfoldArgs _ _ = error "Mismatch arguments in CPS conversion for literal lambda application"
 cps (App f args) k = runAll args $ useArgs f
   where useArgs (Prim p) cArgs = return $ k # App (Prim $ UserPrim p) cArgs
-        useArgs f        cArgs =
-          freshLam (\f' -> return $ App f' (k:cArgs)) >>= cps f
+        useArgs f        cArgs = freshLam (\f' -> return $ App f' (k:cArgs)) >>= cps f
 cps (Prim CallCC) k = do
   cont' <- cont
   freshLam $ \f -> return $ f `App` [k, cont']

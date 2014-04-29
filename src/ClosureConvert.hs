@@ -49,9 +49,9 @@ isCloseVar v = M.member v <$> ask
 isGlobalVar :: Var -> ClosM Bool
 isGlobalVar v = S.member v <$> get
 
-closeOver :: Var -> SExp CPSPrim -> SExpM
-closeOver _ (Prim p) = return $ Prim (CPSPrim p)
-closeOver c (Var v)  = do
+
+closeVar :: Var {- Actual var -} -> Var {- Continuation var -} -> SExpM
+closeVar v c = do
   closedVar <- isCloseVar v
   globalVar <- isGlobalVar v
   if closedVar then do
@@ -62,6 +62,11 @@ closeOver c (Var v)  = do
          else return $ Prim MkLam `App` [Var c, Var v]
               -- Note, we supply all functions with the current closure
               -- top level functions will simply discard it.return $ Var v
+
+
+closeOver :: Var -> SExp CPSPrim -> SExpM
+closeOver _ (Prim p) = return $ Prim (CPSPrim p)
+closeOver c (Var v)  = closeVar v c
 closeOver _ (Lit l) = return $ Lit l
 closeOver c (App f args) = App <$> closeOver c f <*> mapM (closeOver c) args
 closeOver c (If test true false) = If <$> closeOver c test
