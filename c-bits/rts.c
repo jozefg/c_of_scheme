@@ -106,7 +106,7 @@ void scm_apply(int i, scm_t f, ...) {
     arg_list[x] = va_arg(va, scm_t);
   }
   if(f->state != 4){
-    printf("Attempted to apply nonfunction");
+    printf("Attempted to apply nonfunction\n");
     exit(1);
   } else {
     arg_list[0] = f->val.scm_lam.clos;
