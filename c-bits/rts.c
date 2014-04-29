@@ -79,7 +79,7 @@ int scm_eq_raw(scm_t l, scm_t r){
     return 0;
   switch(l->state){
   case 0: return l->val.scm_int == r->val.scm_int;
-  case 1: return strcmp(l->val.scm_sym, r->val.scm_sym);
+  case 1: return !strcmp(l->val.scm_sym, r->val.scm_sym);
   case 2: case 3: return l == r;
   }
   return 0;

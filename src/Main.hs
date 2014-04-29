@@ -18,14 +18,14 @@ compile = ("#include <stdlib.h>\n#include \"rts.h\"\n"++)
 
 prims :: [SDec UserPrim]
 prims = [ Def (SVar "+") $ Lam [a, b] [Plus # [a', b']]
-   --     , Def (SVar "-") $ Lam [a, b] [Sub #  [a', b']]
-   --     , Def (SVar "*") $ Lam [a, b] [Mult # [a', b']]
-   --     , Def (SVar "/") $ Lam [a, b] [Div #  [a', b']]
-   --     , Def (SVar "eq?") $ Lam [a, b] [Eq # [a', b']]
-   --     , Def (SVar "cons") $ Lam [a, b] [Cons # [a', b']]
-        , Def (SVar "display") $ Lam [a] [Display # [a']]]
-   --     , Def (SVar "car") $ Lam [a] [Car # [a']]
-   --     , Def (SVar "cdr") $ Lam [a] [Cdr # [a']]]
+        , Def (SVar "-") $ Lam [a, b] [Sub #  [a', b']]
+        , Def (SVar "*") $ Lam [a, b] [Mult # [a', b']]
+        , Def (SVar "/") $ Lam [a, b] [Div #  [a', b']]
+        , Def (SVar "eq?") $ Lam [a, b] [Eq # [a', b']]
+        , Def (SVar "cons") $ Lam [a, b] [Cons # [a', b']]
+        , Def (SVar "display") $ Lam [a] [Display # [a']]
+        , Def (SVar "car") $ Lam [a] [Car # [a']]
+        , Def (SVar "cdr") $ Lam [a] [Cdr # [a']]]
   where a = SVar "a"
         b = SVar "b"
         a' = Var a
