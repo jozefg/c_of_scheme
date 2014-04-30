@@ -42,6 +42,7 @@ compileC file code = do
   let cFile = file ++ ".c"
       cBits = hd ++ "/.scheme2c/"
       rts   = cBits ++ "rts.c"
+  writeFile cFile code
   output <- system $ "gcc -I" ++ unwords [cBits, cFile, rts] 
   print output
   
