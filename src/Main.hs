@@ -17,10 +17,6 @@ import System.Environment
 import System.Posix.User
 import System.Cmd
 
-
-
-
-
 compile :: Either ParseError [SDec UserPrim] -> Either Failure String
 compile =  runGen
           . eitherT (return . Left) success 
@@ -32,7 +28,6 @@ compile =  runGen
                   . ("#include <stdlib.h>\n#include \"rts.h\"\n"++)
                   . unlines
                   . map (show . pretty)
-        intoFail :: Either ParseError [SDec UserPrim] -> Either Failure [SDec UserPrim]
         intoFail (Left e)  = Left $ Failure Parser "parseSDec" (show e)
         intoFail (Right r) = Right r
 
