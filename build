@@ -1,5 +1,3 @@
-#!/usr/bin/bash
-
 cabal build; cp dist/build/scheme2c/scheme2c .
 if [ -d ~/.scheme2c ]
 then

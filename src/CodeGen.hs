@@ -23,66 +23,18 @@ codegen = runGen
           . runWriterT
           . fmap catMaybes
           . (mapM generateSDec <=< lift . lift)
-  where makeMain decls inits =
-          map makeFunProt decls
-          ++ map makeProt inits
-          ++ decls
-          ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
-        makeBlock = hBlock . concatMap buildExp
+
+makeMain :: [CExtDecl] -> [(CDecl, Maybe String, CExpr)] -> [CExtDecl]
+makeMain decls inits =
+  map makeFunProt decls
+  ++ map makeProt inits
+  ++ decls
+  ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
+  where makeBlock = hBlock . concatMap buildExp
         buildExp (_, v, expr) = maybe [expr] ((:[]) . (<--expr) . fromString) v
         makeFunProt (CFDefExt (CFunDef specs declr _ _ a)) =
           export $ CDecl specs [(Just declr, Nothing, Nothing)] a
         makeProt = export . (\(a, _, _) -> a)
-
-mangle :: Var -> CodeGenM String
-mangle v = do
-  res <- M.lookup v <$> get
-  case res of
-    Nothing -> makeLegal >>= modify . M.insert v >> (M.! v) <$> get
-    Just s  -> return s
-  where makeLegal = ("__" ++) . show <$> gen
-
-generate :: SExp ClosPrim -> CodeGenM CExpr
-generate (Var v) = fromString <$> mangle v
-generate (If test true false) = ternary <$> fmap isZero (generate test) <*> generate true <*> generate false
-  where isZero e = Not `pre` ("scm_eq_raw"#[e, "mkInt"#[0]])
-generate (Prim WriteClos)  = return "scm_write_clos"
-generate (Prim (SelectClos path var)) =  makePath path <$> generate (Var var)
-  where toCInt = fromInteger . toInteger
-        makePath = flip . foldl' $ \cexpr i -> "scm_select_clos"#[toCInt i, cexpr]
-generate (Prim TopClos) = return $ "scm_top_clos"
-generate (App (App (Prim MkLam) closArgs) args) = do
-  closArgs' <- mapM generate closArgs
-  args'     <- mapM generate args
-  return $ "scm_apply"#([numArgs, "mkLam"#closArgs'] ++ args')
-  where numArgs = fromInteger . toInteger . length $ args
-generate (App (Prim MkLam) closArgs) = ("mkLam"#) <$> mapM generate closArgs 
-generate (App (Prim (NewClos v)) args) = do
-  name <- fromString . ("scm_t "++) <$> mangle v
-  escaping <- mapM generate args
-  return $ name <-- "mkClos"# (numArgs:escaping)
-  where numArgs = fromInteger . toInteger . length $ args
-generate (Prim (CPSPrim Halt)) = return "scm_halt"
-generate (Prim (CPSPrim (UserPrim p))) = return $ case p of
-  AST.Plus -> "scm_plus"
-  Sub  -> "scm_sub"
-  Mult -> "scm_mult"
-  Div  -> "scm_div"
-  Eq   -> "scm_eq"
-  Cons -> "scm_cons"
-  Car  -> "scm_car"
-  Cdr  -> "scm_cdr"
-  Display -> "display"
-  _ -> error "Found a CallCC where it shouldn't be"
-generate (App f@(Var{}) args) = ("scm_apply"#) . (numArgs:) <$> mapM generate (f:args)
-  where numArgs = fromInteger . toInteger . length $ args
-generate (App f@(Prim (SelectClos{})) args) = ("scm_apply"#) . (numArgs:) <$> mapM generate (f:args)
-  where numArgs = fromInteger . toInteger . length $ args
-generate (App f args) = (#) <$> generate f <*> mapM generate args
-generate (Set v e) = (<--) <$> fmap fromString (mangle v) <*> generate e
-generate (Lit (SInt i))  = return $ "mkInt"#[fromInteger . toInteger $ i]
-generate (Lit (SSym s))  = return $ "mkSym"#[fromString $ show s]
-generate Lam{} = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
 
 generateSDec :: SDec ClosPrim -> CodeGenM (Maybe CExtDecl)
 generateSDec (Def v (Lam args exps)) = do
@@ -110,4 +62,73 @@ generateSDec (Def v e) = do
   tell [(scm_t (fromString name) Nothing, Nothing, body)]
   return $ Nothing
 
+mangle :: Var -> CodeGenM String
+mangle v = do
+  res <- M.lookup v <$> get
+  case res of
+    Nothing -> makeLegal >>= modify . M.insert v >> (M.! v) <$> get
+    Just s  -> return s
+  where makeLegal = ("__" ++) . show <$> gen
+
+cLen :: [a] -> CExpr
+cLen = fromInteger . toInteger . length
+
+generate :: SExp ClosPrim -> CodeGenM CExpr
+generate (Var v) = fromString <$> mangle v
+generate (If test b1 b2) = ternary <$> (isZ <$> generate test) <*> generate b1 <*> generate b2
+  where isZ e = Not `pre` ("scm_eq_raw"#[e, "mkInt"#[0]])
+generate (App (App (Prim MkLam) closArgs) args) = generateLam closArgs args
+generate (App (Prim MkLam) closArgs) = ("mkLam"#) <$> mapM generate closArgs 
+generate (App (Prim (NewClos v)) args) = generateClos v args
+generate (App f@(Var{}) args) = ("scm_apply"#) . (cLen args:) <$> mapM generate (f:args)
+generate (App f@(Prim (SelectClos{})) args) = ("scm_apply"#) . (cLen args:) <$> mapM generate (f:args)
+generate (App f args) = (#) <$> generate f <*> mapM generate args
+generate (Set v e) = (<--) <$> fmap fromString (mangle v) <*> generate e
+generate (Lit l)   = generateLit l
+generate (Prim p)  = generatePrim p
+generate Lam{}     = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
+
+
+
+-- | Generate a new lambda applied to some arguments
+generateLam :: [SExp ClosPrim] -> [SExp ClosPrim] -> CodeGenM CExpr
+generateLam closArgs args = do
+  closArgs' <- mapM generate closArgs
+  args'     <- mapM generate args
+  return $ "scm_apply"#([cLen args, "mkLam"#closArgs'] ++ args')
+
+-- | Generate a new closure applied to some arguments
+generateClos :: Var -> [SExp ClosPrim] -> CodeGenM CExpr
+generateClos v args = do
+  name <- fromString . ("scm_t "++) <$> mangle v
+  escaping <- mapM generate args
+  return $ name <-- "mkClos"# (cLen args : escaping) -- A closure needs to know its length
+
+-- | Generate primitives
+generatePrim :: ClosPrim -> CodeGenM CExpr
+generatePrim (CPSPrim (UserPrim p)) = return $ generateUserPrim p
+generatePrim (CPSPrim Halt)         = return $ "scm_halt"
+generatePrim TopClos                = return $ "scm_top_clos"
+generatePrim WriteClos              = return "scm_write_clos"
+generatePrim (SelectClos path v) =  makePath path <$> generate (Var v)
+  where toCInt = fromInteger . toInteger
+        makePath = flip . foldl' $ \cexpr i -> "scm_select_clos"#[toCInt i, cexpr]
+-- | The massive switch to generate the rts calls for primops
+generateUserPrim :: UserPrim -> CExpr
+generateUserPrim p = case p of
+  AST.Plus -> "scm_plus"
+  Sub  -> "scm_sub"
+  Mult -> "scm_mult"
+  Div  -> "scm_div"
+  Eq   -> "scm_eq"
+  Cons -> "scm_cons"
+  Car  -> "scm_car"
+  Cdr  -> "scm_cdr"
+  Display -> "display"
+  _ -> error "Found a CallCC where it shouldn't be"
+
+-- | Literals generations
+generateLit :: SLit -> CodeGenM CExpr
+generateLit (SInt i)  = return $ "mkInt"#[fromInteger . toInteger $ i]
+generateLit (SSym s)  = return $ "mkSym"#[fromString $ show s]
 
