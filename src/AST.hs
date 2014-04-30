@@ -1,5 +1,6 @@
 module AST where
 import Gen
+import Error
 import Control.Applicative
 
 data Var = SVar String | Gen Integer
@@ -50,7 +51,7 @@ data SDec p = Def Var (SExp p)
 instance Show p => Show (SDec p) where
   show (Def v e) = "(define "++show v++"\n  "++show e++")"
 
-freshLam :: (SExp a -> Gen (SExp a)) -> Gen (SExp a)
+freshLam :: (SExp a -> FailGen (SExp a)) -> FailGen (SExp a)
 freshLam f = do
   v <- Gen <$> gen
   Lam [v] . (:[]) <$> f (Var v)

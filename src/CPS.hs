@@ -2,23 +2,23 @@ module CPS where
 import Control.Applicative
 import Gen
 import AST
+import Error
 
-cpsifySDec :: [SDec UserPrim] -> Gen [SDec CPSPrim]
+cpsifySDec :: [SDec UserPrim] -> FailGen [SDec CPSPrim]
 cpsifySDec decs = mapM toCPS decs
   where toCPS (Def v l@(Lam{})) = Def v <$> cps l (Prim Halt)
-        toCPS (Def v e)        =
+        toCPS (Def v e)         =
           Def v <$> (freshLam (\res -> return $ Set v res) >>= cps e)
 
 (#) :: SExp p -> SExp p -> SExp p
 f # v = App f [v]
 
-runAll :: [SExp UserPrim] -> ([SExp CPSPrim] -> Gen (SExp CPSPrim)) -> Gen (SExp CPSPrim)
+runAll :: [SExp UserPrim] -> ([SExp CPSPrim] -> FailGen (SExp CPSPrim)) -> FailGen (SExp CPSPrim)
 runAll = go []
   where go cpsed [] f = f (reverse cpsed)
-        go cpsed (e:es) f =
-          (freshLam $ \e' -> go (e':cpsed) es f) >>= cps e
+        go cpsed (e:es) f = (freshLam $ \e' -> go (e':cpsed) es f) >>= cps e
 
-cps :: SExp UserPrim -> SExp CPSPrim -> Gen (SExp CPSPrim)
+cps :: SExp UserPrim -> SExp CPSPrim -> FailGen (SExp CPSPrim)
 cps (Lit l) k = return $ k # Lit l
 cps (Set v e) k = (freshLam $ \r -> return $ k # Set v r) >>= cps e 
 cps (Lam args exps) k = do
@@ -35,7 +35,8 @@ cps (If test true false) k =
 cps (App (Lam vars exps) args) k = unfoldArgs vars args
   where unfoldArgs (v : vars) (a : args) = unfoldArgs vars args >>= cps a . Lam [v] . (:[])
         unfoldArgs [] [] = runAll exps (return . (k#) . head)
-        unfoldArgs _ _ = error "Mismatch arguments in CPS conversion for literal lambda application"
+        unfoldArgs _ _ =
+          failCPS "cps" "Mismatch arguments in CPS conversion for literal lambda application"
 cps (App f args) k = runAll args $ useArgs f
   where useArgs (Prim p) cArgs = return $ k # App (Prim $ UserPrim p) cArgs
         useArgs f        cArgs = freshLam (\f' -> return $ App f' (k:cArgs)) >>= cps f

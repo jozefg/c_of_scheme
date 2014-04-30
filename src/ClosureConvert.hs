@@ -1,6 +1,7 @@
 module ClosureConvert where
 import AST
 import Gen
+import Error
 import qualified Data.Set as S
 import qualified Data.Map as M
 import Control.Applicative
@@ -21,22 +22,21 @@ import Control.Monad.State
 type ClosPath = M.Map Var [Int]
 type GlobalVars  = S.Set Var
 type Closures = [(Var, SExp ClosPrim)]
-type ClosM    = StateT GlobalVars (WriterT Closures (ReaderT ClosPath Gen))
+type ClosM    = StateT GlobalVars (WriterT Closures (ReaderT ClosPath FailGen))
 type SExpM    = ClosM (SExp ClosPrim)
 
-runClosM :: Gen GlobalVars -> ClosM [SDec ClosPrim]  -> Gen [SDec ClosPrim]
-runClosM decNames decs = decNames >>= flip runClos decs
-  where runClos decNames' = fmap combine
-                            . flip runReaderT M.empty
-                            . runWriterT
-                            . flip evalStateT decNames'
-        combine (results, closVars) = map (uncurry Def) closVars ++ results
+runClosM :: GlobalVars -> ClosM [SDec ClosPrim]  -> FailGen [SDec ClosPrim]
+runClosM decNames = fmap combine
+                    . flip runReaderT M.empty
+                    . runWriterT
+                    . flip evalStateT decNames
+  where combine (results, closVars) = map (uncurry Def) closVars ++ results
         
 
-convert :: Gen [SDec CPSPrim] -> Gen [SDec ClosPrim]
-convert decs = runClosM (buildEnv <$> decs) $ do
+convert :: [SDec CPSPrim] -> FailGen [SDec ClosPrim]
+convert decs = runClosM (buildEnv decs) $ do
   undefinedClos <- Gen <$> gen
-  newDecs <- (lift . lift . lift) decs >>= convertDecs undefinedClos
+  newDecs <- convertDecs undefinedClos decs
   return $ (Def undefinedClos (Set undefinedClos $ Prim TopClos)) : newDecs
   where buildEnv = foldr addEnv S.empty . filter isLam
         isLam (Def _ (App (Prim Halt) [Lam{}])) = False

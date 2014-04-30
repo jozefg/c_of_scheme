@@ -4,20 +4,37 @@ import CPS
 import ClosureConvert
 import CodeGen
 import Parser
+import Gen
+import Error
 import Language.C.DSL (pretty)
+
+import Text.Parsec (ParseError)
+
+import Control.Monad
+import Control.Error
 
 import System.Environment
 import System.Posix.User
 import System.Cmd
 
-compile :: [SDec UserPrim] -> String
-compile = ("#include <stdlib.h>\n#include \"rts.h\"\n"++)
-          . unlines
-          . map (show . pretty)
-          . codegen
-          . convert
-          . cpsifySDec
-          . (prims++)
+
+
+
+
+compile :: Either ParseError [SDec UserPrim] -> Either Failure String
+compile =  runGen
+          . eitherT (return . Left) success 
+          . (codegen <=< convert <=< cpsifySDec <=< hoistEither)
+          . fmap (++prims)
+          . intoFail
+  where success = return
+                  . Right
+                  . ("#include <stdlib.h>\n#include \"rts.h\"\n"++)
+                  . unlines
+                  . map (show . pretty)
+        intoFail :: Either ParseError [SDec UserPrim] -> Either Failure [SDec UserPrim]
+        intoFail (Left e)  = Left $ Failure Parser "parseSDec" (show e)
+        intoFail (Right r) = Right r
 
 prims :: [SDec UserPrim]
 prims = [ Def (SVar "+") $ Lam [a, b] [Plus # [a', b']]
@@ -51,6 +68,7 @@ main :: IO ()
 main = do
   [file] <- getArgs
   res <- parseFile file
-  case res of
-    Left err -> print err
-    Right ast -> compileC file (compile ast)
+  case compile res of
+    Right source -> compileC file source
+    Left  e      -> errLn (presentError e)
+

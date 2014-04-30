@@ -6,6 +6,7 @@ import Control.Monad.Reader
 import Control.Monad.Identity
 import Control.Monad.Writer
 import Control.Applicative
+import Control.Error
 
 newtype GenT m a = GenT {unGenT :: StateT Integer m a}
                     deriving(Functor, Applicative, Monad)
@@ -25,19 +26,22 @@ instance (MonadWriter w m) => MonadWriter w (GenT m) where
   listen = GenT . listen . unGenT
   pass   = GenT . pass . unGenT
 
-class MonadGen m where
+class Monad m => MonadGen m where
   gen :: m Integer
 
 instance (Monad m, Functor m) => MonadGen (GenT m) where
   gen = GenT $ modify (+1) >> get
 
-instance (MonadGen m, Monad m) => MonadGen (StateT s m)  where
+instance MonadGen m => MonadGen (StateT s m)  where
   gen = lift gen
 
-instance (MonadGen m, Monad m) => MonadGen (ReaderT s m)  where
+instance MonadGen m => MonadGen (ReaderT s m)  where
   gen = lift gen
 
-instance (MonadGen m, Monad m, Monoid s) => MonadGen (WriterT s m)  where
+instance (MonadGen m, Monoid s) => MonadGen (WriterT s m)  where
+  gen = lift gen
+
+instance MonadGen (EitherT e Gen) where
   gen = lift gen
 
 runGenT :: Monad m => GenT m a -> m a

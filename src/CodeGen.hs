@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module CodeGen where
 import Gen
+import Error
 import AST
 import Control.Monad.State
 import Control.Monad.Writer
@@ -11,18 +12,17 @@ import Data.String
 import Data.Maybe (catMaybes)
 import Data.List (foldl')
 
-type CodeGenM = WriterT [(CDecl, Maybe String, CExpr)] (StateT (M.Map Var String) Gen)
+type CodeGenM = WriterT [(CDecl, Maybe String, CExpr)] (StateT (M.Map Var String) FailGen)
 
 scm_t :: CDeclr -> Maybe CExpr -> CDecl
 scm_t = decl (CTypeSpec (CTypeDef "scm_t" undefNode))
 
-codegen :: Gen [SDec ClosPrim] -> [CExtDecl]
-codegen = runGen
-          . flip evalStateT (M.empty)
+codegen :: [SDec ClosPrim] -> FailGen [CExtDecl]
+codegen = flip evalStateT (M.empty)
           . fmap (uncurry makeMain)
           . runWriterT
           . fmap catMaybes
-          . (mapM generateSDec <=< lift . lift)
+          . mapM generateSDec
 
 makeMain :: [CExtDecl] -> [(CDecl, Maybe String, CExpr)] -> [CExtDecl]
 makeMain decls inits =
@@ -86,7 +86,7 @@ generate (App f args) = (#) <$> generate f <*> mapM generate args
 generate (Set v e) = (<--) <$> fmap fromString (mangle v) <*> generate e
 generate (Lit l)   = generateLit l
 generate (Prim p)  = generatePrim p
-generate Lam{}     = error "Hey you've found a lambda in a bad spot. CRY TEARS OF BLOOD"
+generate Lam{}     = failGen "generate" "unlifted lambda in a bad spot"
 
 
 
@@ -106,7 +106,7 @@ generateClos v args = do
 
 -- | Generate primitives
 generatePrim :: ClosPrim -> CodeGenM CExpr
-generatePrim (CPSPrim (UserPrim p)) = return $ generateUserPrim p
+generatePrim (CPSPrim (UserPrim p)) = generateUserPrim p
 generatePrim (CPSPrim Halt)         = return $ "scm_halt"
 generatePrim TopClos                = return $ "scm_top_clos"
 generatePrim WriteClos              = return "scm_write_clos"
@@ -114,18 +114,18 @@ generatePrim (SelectClos path v) =  makePath path <$> generate (Var v)
   where toCInt = fromInteger . toInteger
         makePath = flip . foldl' $ \cexpr i -> "scm_select_clos"#[toCInt i, cexpr]
 -- | The massive switch to generate the rts calls for primops
-generateUserPrim :: UserPrim -> CExpr
+generateUserPrim :: UserPrim -> CodeGenM CExpr
 generateUserPrim p = case p of
-  AST.Plus -> "scm_plus"
-  Sub  -> "scm_sub"
-  Mult -> "scm_mult"
-  Div  -> "scm_div"
-  Eq   -> "scm_eq"
-  Cons -> "scm_cons"
-  Car  -> "scm_car"
-  Cdr  -> "scm_cdr"
-  Display -> "display"
-  _ -> error "Found a CallCC where it shouldn't be"
+  AST.Plus -> return "scm_plus"
+  Sub  -> return  "scm_sub"
+  Mult -> return  "scm_mult"
+  Div  -> return  "scm_div"
+  Eq   -> return  "scm_eq"
+  Cons -> return  "scm_cons"
+  Car  -> return  "scm_car"
+  Cdr  -> return  "scm_cdr"
+  Display -> return  "display"
+  CallCC -> failGen "generateUserPrim"  "Found a CallCC where it shouldn't be"
 
 -- | Literals generations
 generateLit :: SLit -> CodeGenM CExpr
