@@ -51,10 +51,9 @@ generateSDec (Def v (Lam args exps)) = do
              block $ init ++ head body : intoB ("free"#[fromString arrayName]) : tail body
   return . Just $ export lam
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
-generateSDec (Def v (App (Prim (CPSPrim Halt)) [e])) = do
+generateSDec (Def v (Lit (SInt 0))) = do
   name <- mangle v
-  body <- generate e
-  tell [(scm_t (fromString name) Nothing, Just name, body)]
+  tell [(scm_t (fromString name) Nothing, Just name, 0)]
   return $ Nothing
 generateSDec (Def v e) = do
   name <- mangle v
