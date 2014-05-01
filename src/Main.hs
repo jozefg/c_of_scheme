@@ -1,8 +1,9 @@
 module Main where
 import AST
 import CPS
+import RewriteToplevels
 import ClosureConvert
-import CodeGen
+import CodeGen hiding(makeMain)
 import Parser
 import Gen
 import Error
@@ -20,7 +21,7 @@ import System.Cmd
 compile :: Either ParseError [SDec UserPrim] -> Either Failure String
 compile =  runGen
           . eitherT (return . Left) success 
-          . (codegen <=< convert <=< cpsifySDec <=< hoistEither)
+          . (codegen <=< convert <=< cpsifySDec <=< makeMain <=< hoistEither)
           . fmap (++prims)
           . intoFail
   where success = return

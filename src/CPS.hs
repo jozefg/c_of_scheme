@@ -6,8 +6,9 @@ import Error
 
 cpsifySDec :: [SDec UserPrim] -> FailGen [SDec CPSPrim]
 cpsifySDec decs = mapM toCPS decs
-  where toCPS (Def v l@(Lam{})) = Def v <$> cps l (Prim Halt)
-        toCPS (Def v e)         =
+  where toCPS (Def v l@(Lam{}))        = Def v <$> cps l (Prim Halt)
+        toCPS (Def v (Lit (SInt 0))) = return $ Def v (Lit (SInt 0))
+        toCPS (Def v e) = 
           Def v <$> (freshLam (\res -> return $ Set v res) >>= cps e)
 
 (#) :: SExp p -> SExp p -> SExp p

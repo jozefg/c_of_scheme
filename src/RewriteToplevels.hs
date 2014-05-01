@@ -9,12 +9,12 @@ import Control.Applicative
 type Rewrite = WriterT [(Var, SExp UserPrim)] FailGen
 
 
-rewrite :: [SDec UserPrim] -> FailGen [SDec UserPrim]
-rewrite = ap (make . Gen <$> gen) . runWriterT . mapM rewriteDec
-  where make name (decs, exps) = decs ++ [Def name $ makeMain exps]
+makeMain :: [SDec UserPrim] -> FailGen [SDec UserPrim]
+makeMain = ap (make . Gen <$> gen) . runWriterT . mapM rewriteDec
+  where make name (decs, exps) = decs ++ [Def name $ buildLam exps]
 
-makeMain :: [(Var, SExp UserPrim)] -> SExp UserPrim
-makeMain = Lam [] . map (uncurry Set)
+buildLam :: [(Var, SExp UserPrim)] -> SExp UserPrim
+buildLam = flip App [] . Lam [] . map (uncurry Set)
 
 rewriteDec :: SDec UserPrim -> Rewrite (SDec UserPrim)
 rewriteDec d@(Def _ Lam{}) = return d -- Don't rewrite functions

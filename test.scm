@@ -1,4 +1,4 @@
-define end 'end)
+(define end 'end)
 
 (define map
   (lambda (f l)
