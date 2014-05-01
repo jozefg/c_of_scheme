@@ -12,12 +12,12 @@ import Data.String
 import Data.Maybe (catMaybes)
 import Data.List (foldl')
 
-type CodeGenM = WriterT [(CDecl, Maybe String, CExpr)] (StateT (M.Map Var String) FailGen)
+type CodeGenM = WriterT [(CDecl, Maybe String, CExpr)] (StateT (M.Map Var String) Compiler)
 
 scm_t :: CDeclr -> Maybe CExpr -> CDecl
 scm_t = decl (CTypeSpec (CTypeDef "scm_t" undefNode))
 
-codegen :: [SDec ClosPrim] -> FailGen [CExtDecl]
+codegen :: [SDec ClosPrim] -> Compiler [CExtDecl]
 codegen = flip evalStateT (M.empty)
           . fmap (uncurry makeMain)
           . runWriterT
@@ -44,10 +44,11 @@ generateSDec (Def v (Lam args exps)) = do
   body <- map intoB <$> mapM generate exps
   -- Build the corresponding function
   let init = zipWith (assignFrom $ fromString arrayName) vars [0..]
-      lam  = fun
+      lam  = annotatedFun
              [voidTy]
              (fromString varName)
-             [scm_t . ptr $ fromString arrayName] $
+             [scm_t . ptr $ fromString arrayName]
+             ["noreturn"] $
              block $ init ++ head body : intoB ("free"#[fromString arrayName]) : tail body
   return . Just $ export lam
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
@@ -55,11 +56,16 @@ generateSDec (Def v (Lit (SInt 0))) = do
   name <- mangle v
   tell [(scm_t (fromString name) Nothing, Just name, 0)]
   return $ Nothing
-generateSDec (Def v e) = do
+generateSDec (Def v (App (Prim (CPSPrim Halt)) [e])) = do
   name <- mangle v
   body <- generate e
-  tell [(scm_t (fromString name) Nothing, Nothing, body)]
+  tell [(scm_t (fromString name) Nothing, Just name, body)]
   return $ Nothing
+generateSDec (Def v (Prim TopClos)) = do
+  name <- mangle v
+  tell [(scm_t (fromString name) Nothing, Just name, "scm_top_clos")]
+  return $ Nothing
+generateSDec (Def v e) = error $ show e
 
 mangle :: Var -> CodeGenM String
 mangle v = do

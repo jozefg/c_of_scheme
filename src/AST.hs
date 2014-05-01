@@ -2,6 +2,8 @@ module AST where
 import Gen
 import Error
 import Control.Applicative
+import Control.Monad.State
+import Control.Error
 
 data Var = SVar String | Gen Integer
          deriving(Eq, Ord)
@@ -51,8 +53,9 @@ data SDec p = Def Var (SExp p)
 instance Show p => Show (SDec p) where
   show (Def v e) = "(define "++show v++"\n  "++show e++")"
 
-freshLam :: (SExp a -> FailGen (SExp a)) -> FailGen (SExp a)
+freshLam :: (SExp a -> Compiler (SExp a)) -> Compiler (SExp a)
 freshLam f = do
   v <- Gen <$> gen
   Lam [v] . (:[]) <$> f (Var v)
 
+type Compiler = StateT Var (EitherT Failure Gen)

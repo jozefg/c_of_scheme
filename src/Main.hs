@@ -39,7 +39,7 @@ compileC file code = do
       cBits = hd ++ "/.scheme2c/"
       rts   = cBits ++ "rts.c"
   writeFile cFile code
-  output <- system $ "gcc -I" ++ unwords [cBits, cFile, rts] 
+  output <- system $ "clang -I" ++ unwords [cBits, cFile, rts] 
   print output
 
 main :: IO ()

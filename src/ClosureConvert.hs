@@ -22,10 +22,10 @@ import Control.Monad.State
 type ClosPath = M.Map Var [Int]
 type GlobalVars  = S.Set Var
 type Closures = [(Var, SExp ClosPrim)]
-type ClosM    = StateT GlobalVars (WriterT Closures (ReaderT ClosPath FailGen))
+type ClosM    = StateT GlobalVars (WriterT Closures (ReaderT ClosPath Compiler))
 type SExpM    = ClosM (SExp ClosPrim)
 
-runClosM :: GlobalVars -> ClosM [SDec ClosPrim]  -> FailGen [SDec ClosPrim]
+runClosM :: GlobalVars -> ClosM [SDec ClosPrim]  -> Compiler [SDec ClosPrim]
 runClosM decNames = fmap combine
                     . flip runReaderT M.empty
                     . runWriterT
@@ -33,11 +33,11 @@ runClosM decNames = fmap combine
   where combine (results, closVars) = map (uncurry Def) closVars ++ results
         
 
-convert :: [SDec CPSPrim] -> FailGen [SDec ClosPrim]
+convert :: [SDec CPSPrim] -> Compiler [SDec ClosPrim]
 convert decs = runClosM (buildEnv decs) $ do
   undefinedClos <- Gen <$> gen
   newDecs <- convertDecs undefinedClos decs
-  return $ (Def undefinedClos (Set undefinedClos $ Prim TopClos)) : newDecs
+  return $ (Def undefinedClos $ Prim TopClos) : newDecs
   where buildEnv = foldr addEnv S.empty . filter isLam
         isLam (Def _ (App (Prim Halt) [Lam{}])) = False
         isLam _                                 = True

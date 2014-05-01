@@ -5,8 +5,6 @@ import Control.Monad.Error
 import Control.Error
 import Gen
 
-type FailGen = EitherT Failure Gen
-
 data Stage = Parser | CPS | ClosConv | CodeGen
 
 type Loc  = String
