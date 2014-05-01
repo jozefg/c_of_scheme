@@ -31,6 +31,24 @@ compile =  runGen
         intoFail (Left e)  = Left $ Failure Parser "parseSDec" (show e)
         intoFail (Right r) = Right r
 
+compileC :: String -> String -> IO ()
+compileC file code = do
+  UserEntry{homeDirectory = hd} <- getRealUserID >>= getUserEntryForID
+  let cFile = file ++ ".c"
+      cBits = hd ++ "/.scheme2c/"
+      rts   = cBits ++ "rts.c"
+  writeFile cFile code
+  output <- system $ "gcc -I" ++ unwords [cBits, cFile, rts] 
+  print output
+
+main :: IO ()
+main = do
+  [file] <- getArgs
+  res <- parseFile file
+  case compile res of
+    Right source -> compileC file source
+    Left  e      -> errLn (presentError e)
+
 prims :: [SDec UserPrim]
 prims = [ Def (SVar "+") $ Lam [a, b] [Plus # [a', b']]
         , Def (SVar "-") $ Lam [a, b] [Sub #  [a', b']]
@@ -46,24 +64,3 @@ prims = [ Def (SVar "+") $ Lam [a, b] [Plus # [a', b']]
         a' = Var a
         b' = Var b
         f # args = App (Prim f) args
-
-
-compileC :: String -> String -> IO ()
-compileC file code = do
-  UserEntry{homeDirectory = hd} <- getRealUserID >>= getUserEntryForID
-  let cFile = file ++ ".c"
-      cBits = hd ++ "/.scheme2c/"
-      rts   = cBits ++ "rts.c"
-  writeFile cFile code
-  output <- system $ "gcc -I" ++ unwords [cBits, cFile, rts] 
-  print output
-  
-
-main :: IO ()
-main = do
-  [file] <- getArgs
-  res <- parseFile file
-  case compile res of
-    Right source -> compileC file source
-    Left  e      -> errLn (presentError e)
-
