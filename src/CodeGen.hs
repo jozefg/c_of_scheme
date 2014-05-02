@@ -141,5 +141,4 @@ tellMain :: CodeGenM ()
 tellMain = do
   mainVar <- lift . lift $ get
   main <- mangle mainVar
-  tell [(int "_" Nothing, Nothing, -- Dummy Declr
-        "scm_apply"#[0, "mkLam"#["scm_top_clos", fromString main]])]
+  tell [(int "_" Nothing, Nothing, "scm_init"#[fromString main])]
