@@ -21,8 +21,10 @@ instance Show SLit where
 data UserPrim = Plus | Mult | Sub | Div    | Display
               | Cons | Car  | Cdr | CallCC | Eq | Exit
               deriving(Eq, Show)
+
 data CPSPrim = Halt | UserPrim UserPrim
               deriving(Eq, Show)
+
 data ClosPrim = NewClos Var | SelectClos [Int] Var | MkLam
               | WriteClos | TopClos | CPSPrim CPSPrim
               deriving(Eq, Show)
