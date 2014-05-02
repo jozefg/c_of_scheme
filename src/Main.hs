@@ -12,6 +12,8 @@ import Language.C.DSL (pretty)
 import Text.Parsec (ParseError)
 
 import Control.Monad
+import Control.Monad.Trans
+import Control.Monad.State
 import Control.Error
 
 import System.Environment
@@ -20,8 +22,9 @@ import System.Cmd
 
 compile :: Either ParseError [SDec UserPrim] -> Either Failure String
 compile =  runGen
-          . eitherT (return . Left) success 
-          . (codegen <=< convert <=< cpsifySDec <=< makeMain <=< hoistEither)
+          . eitherT (return . Left) success
+          . flip evalStateT (SVar "")
+          . (codegen <=< convert <=< cpsifySDec <=< makeMain <=< (lift . hoistEither))
           . fmap (++prims)
           . intoFail
   where success = return

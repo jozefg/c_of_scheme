@@ -30,18 +30,20 @@ runClosM decNames = fmap combine
                     . flip runReaderT M.empty
                     . runWriterT
                     . flip evalStateT decNames
-  where combine (results, closVars) = map (uncurry Def) closVars ++ results
+  where combine (results, closVars) = map build closVars ++ results
+        build (v, Lam vars exps) = Fun v vars exps
         
 
 convert :: [SDec CPSPrim] -> Compiler [SDec ClosPrim]
 convert decs = runClosM (buildEnv decs) $ do
   undefinedClos <- Gen <$> gen
-  newDecs <- convertDecs undefinedClos decs
+  newDecs       <- convertDecs undefinedClos decs
   return $ (Def undefinedClos $ Prim TopClos) : newDecs
-  where buildEnv = foldr addEnv S.empty . filter isLam
-        isLam (Def _ (App (Prim Halt) [Lam{}])) = False
-        isLam _                                 = True
-        addEnv (Def n _) m = S.insert n m
+  where buildEnv = foldr addEnv S.empty . filter notLam
+        notLam Fun{} = False
+        notLam _     = True
+        addEnv (Init n) m    = S.insert n m
+        addEnv (Fun n _ _) m = S.insert n m
 
 isCloseVar :: Var -> ClosM Bool
 isCloseVar v = M.member v <$> ask
@@ -94,13 +96,13 @@ closeOver c (Lam vars exps) = do
 
 convertDecs :: Var -> [SDec CPSPrim] -> ClosM [SDec ClosPrim]
 convertDecs c = mapM convertDec
-  where convertDec (Def n (App (Prim Halt) [(Lam vars exps)])) = do
+  where convertDec (Fun n vars exps) = do
           newClos  <- Gen <$> gen
           oldClos  <- Gen <$> gen
           exps'    <- addClos vars $ mapM (closeOver newClos) exps
-          return . Def n .  Lam (oldClos:vars) $ 
+          return . Fun n (oldClos:vars) $ 
             Prim (NewClos newClos) `App` (map Var $ c : vars) : exps'
-        convertDec (Def n e) = Def n <$> closeOver c e
+        convertDec (Init v)  = return $ Init v
+        convertDec (Def _ _) = failClos "convertDec" "Found an unrewritten Dec!" 
         addClos vars m = local (M.union (newVars vars) . M.map (0:)) $ m
         newVars vars = M.fromList $ zip vars (map pure [1..])
-

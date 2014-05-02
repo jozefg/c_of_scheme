@@ -6,9 +6,13 @@ import Error
 
 cpsifySDec :: [SDec UserPrim] -> Compiler [SDec CPSPrim]
 cpsifySDec decs = mapM toCPS decs
-  where toCPS (Def v l@(Lam{}))        = Def v <$> cps l (Prim Halt)
-        toCPS (Def v (Lit (SInt 0)))   = return $ Def v (Lit (SInt 0))
-        toCPS (Def v e)                = Def v <$> cps e (Prim Halt) -- This is only called for main
+  where toCPS (Init v) = return $ Init v
+        toCPS (Def _ _) = failCPS "cpsifySDec" "Found an unrewritten Def"
+        toCPS (Fun v vars exps) = do
+          newLam <- cps (Lam vars exps) (Prim Halt)
+          case newLam of
+            App (Prim Halt) [(Lam vars exps)] -> return $ Fun v vars exps
+            _                                 -> failCPS "toCPS" "Unexpected structure for newLam"
 
 (#) :: SExp p -> SExp p -> SExp p
 f # v = App f [v]

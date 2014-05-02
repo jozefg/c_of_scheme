@@ -48,14 +48,17 @@ instance Show p => Show (SExp p) where
   show (Prim p) = show p
   
 data SDec p = Def Var (SExp p)
+            | Init Var
+            | Fun Var [Var] [SExp p]
             deriving(Eq)
 
 instance Show p => Show (SDec p) where
   show (Def v e) = "(define "++show v++"\n  "++show e++")"
+
+type Compiler = StateT Var (EitherT Failure Gen)
 
 freshLam :: (SExp a -> Compiler (SExp a)) -> Compiler (SExp a)
 freshLam f = do
   v <- Gen <$> gen
   Lam [v] . (:[]) <$> f (Var v)
 
-type Compiler = StateT Var (EitherT Failure Gen)

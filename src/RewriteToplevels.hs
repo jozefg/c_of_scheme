@@ -15,11 +15,11 @@ makeMain = (>>=make) . runWriterT . mapM rewriteDec
   where make (decs, exps) = do
           lVar <- Gen <$> gen 
           put lVar
-          return $ decs ++ [Def lVar $ buildLam exps]
+          return $ decs ++ [Fun lVar [] $ buildLam exps]
 
-buildLam :: [(Var, SExp UserPrim)] -> SExp UserPrim
-buildLam = Lam [] . map (uncurry Set)
+buildLam :: [(Var, SExp UserPrim)] -> [SExp UserPrim]
+buildLam = map (uncurry Set)
 
 rewriteDec :: SDec UserPrim -> Rewrite (SDec UserPrim)
-rewriteDec d@(Def _ Lam{}) = return d -- Don't rewrite functions
-rewriteDec (Def v e)       = tell [(v, e)] >> return (Def v (Lit $ SInt 0))
+rewriteDec (Def v (Lam vars exps)) = return (Fun v vars exps) 
+rewriteDec (Def v e)              = tell [(v, e)] >> return (Init v)

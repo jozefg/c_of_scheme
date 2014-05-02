@@ -37,7 +37,7 @@ makeMain decls inits =
         makeProt = export . (\(a, _, _) -> a)
 
 generateSDec :: SDec ClosPrim -> CodeGenM (Maybe CExtDecl)
-generateSDec (Def v (Lam args exps)) = do
+generateSDec (Fun v args exps) = do
   varName   <- mangle v
   arrayName <- Gen <$> gen >>= mangle
   vars <- map (scm_t . fromString) <$> mapM mangle args
@@ -52,21 +52,15 @@ generateSDec (Def v (Lam args exps)) = do
              block $ init ++ head body : intoB ("free"#[fromString arrayName]) : tail body
   return . Just $ export lam
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
-generateSDec (Def v (Lit (SInt 0))) = do
+generateSDec (Init v) = do
   name <- mangle v
   tell [(scm_t (fromString name) Nothing, Just name, 0)]
-  return $ Nothing
-generateSDec (Def v (App (Prim (CPSPrim Halt)) [e])) = do
-  name <- mangle v
-  body <- generate e
-  tell [(scm_t (fromString name) Nothing, Just name, body)]
   return $ Nothing
 generateSDec (Def v (Prim TopClos)) = do
   name <- mangle v
   tell [(scm_t (fromString name) Nothing, Just name, "scm_top_clos")]
   return $ Nothing
-generateSDec (Def v e) = error $ show e
-
+generateSDec d = failGen "generateSDec" $ "Unmatched case for" ++ show d
 mangle :: Var -> CodeGenM String
 mangle v = do
   res <- M.lookup v <$> get
