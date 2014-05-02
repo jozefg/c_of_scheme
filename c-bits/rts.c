@@ -3,6 +3,16 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <setjump.h> // Weeeee
+
+// Global variables for preserving
+// continuations during longjmp's
+static scm_t  current_fun;
+static scm_t* current_args;
+static int    current_args_len;
+
+// Global counter of function calls
+static int stack_frames;
 
 struct scheme_val;
 typedef struct clos {
@@ -97,6 +107,11 @@ scm_t display(scm_t s){
   return s;
 }
 
+void scm_init(scm_t f){
+  stack_frames = 0;
+  scm_apply(0, mkLam(scm_top_clos, f)); // Call main
+}
+
 void scm_apply(int i, scm_t f, ...) {
   int x;
   va_list va;
@@ -110,7 +125,13 @@ void scm_apply(int i, scm_t f, ...) {
     exit(1);
   } else {
     arg_list[0] = f->val.scm_lam.clos;
-    f->val.scm_lam.fun(arg_list);
+
+    if(stack_frames >= 100){
+      // Transfer continuation up
+      current_fun     = f;
+      current_args    = arg_list;
+      curren_args_len = i;
+      longjmp(env);
   }
 }
 
