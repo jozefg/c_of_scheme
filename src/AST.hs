@@ -2,6 +2,8 @@ module AST where
 import Gen
 import Error
 import Control.Applicative
+import Control.Monad.State
+import Control.Error
 
 data Var = SVar String | Gen Integer
          deriving(Eq, Ord)
@@ -17,10 +19,12 @@ instance Show SLit where
   show (SSym s) = '\'' : s
 
 data UserPrim = Plus | Mult | Sub | Div    | Display
-              | Cons | Car  | Cdr | CallCC | Eq
+              | Cons | Car  | Cdr | CallCC | Eq | Exit
               deriving(Eq, Show)
+
 data CPSPrim = Halt | UserPrim UserPrim
               deriving(Eq, Show)
+
 data ClosPrim = NewClos Var | SelectClos [Int] Var | MkLam
               | WriteClos | TopClos | CPSPrim CPSPrim
               deriving(Eq, Show)
@@ -46,12 +50,16 @@ instance Show p => Show (SExp p) where
   show (Prim p) = show p
   
 data SDec p = Def Var (SExp p)
+            | Init Var
+            | Fun Var [Var] [SExp p]
             deriving(Eq)
 
 instance Show p => Show (SDec p) where
   show (Def v e) = "(define "++show v++"\n  "++show e++")"
 
-freshLam :: (SExp a -> FailGen (SExp a)) -> FailGen (SExp a)
+type Compiler = StateT Var (EitherT Failure Gen)
+
+freshLam :: (SExp a -> Compiler (SExp a)) -> Compiler (SExp a)
 freshLam f = do
   v <- Gen <$> gen
   Lam [v] . (:[]) <$> f (Var v)

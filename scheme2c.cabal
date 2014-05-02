@@ -1,5 +1,5 @@
 name:                scheme2c
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            Compiler for Scheme to C
 license:             MIT
 license-file:        LICENSE
@@ -13,7 +13,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 executable scheme2c
   main-is:             Main.hs
-  other-modules:       Gen, Error, AST, ClosureConvert, CodeGen
+  other-modules:       Gen, Error, AST, ClosureConvert, CodeGen, RewriteToplevels
   build-depends:       base >=4.6 && <5,
                        mtl>= 2.0,
                        containers,

@@ -170,8 +170,11 @@ scm_t scm_cdr(scm_t s){
   return s->val.scm_cons.tail;
 }
 
-void scm_halt(scm_t l){}
-
+void scm_halt(scm_t l) {exit(0);}
+scm_t scm_stop(){
+  exit(0);
+  return NULL;
+}
 scm_t scm_select_clos(int ind, scm_t clos){
   if(clos->state != 3){
     printf("Attempted to select with non-closure\n");

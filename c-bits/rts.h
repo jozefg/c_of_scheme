@@ -7,7 +7,7 @@
 */
 
 typedef struct scheme_val* scm_t;
-typedef void (*lam_t)(scm_t*);
+typedef void (*lam_t)(scm_t*) __attribute__((noreturn));
 /* User primitives, these are wrapped by implicit
    scheme top level declaratios in Scheme.
 
@@ -23,7 +23,7 @@ scm_t mkLam (scm_t, lam_t l);
 scm_t scm_eq(scm_t, scm_t);
 int scm_eq_raw(scm_t, scm_t);
 scm_t display(scm_t);
-void scm_apply(int i, scm_t f, ...);
+void scm_apply(int i, scm_t f, ...) __attribute__((noreturn));
 
 scm_t scm_plus(scm_t, scm_t);
 scm_t scm_sub(scm_t, scm_t);
@@ -34,7 +34,10 @@ scm_t scm_cons(scm_t, scm_t);
 scm_t scm_car(scm_t);
 scm_t scm_cdr(scm_t);
 
+
+scm_t scm_stop();
 void scm_halt(scm_t);
+
 
 /* Closure related RTS stuff
 

@@ -1,8 +1,9 @@
 module Main where
 import AST
 import CPS
+import RewriteToplevels
 import ClosureConvert
-import CodeGen
+import CodeGen hiding(makeMain)
 import Parser
 import Gen
 import Error
@@ -11,6 +12,8 @@ import Language.C.DSL (pretty)
 import Text.Parsec (ParseError)
 
 import Control.Monad
+import Control.Monad.Trans
+import Control.Monad.State
 import Control.Error
 
 import System.Environment
@@ -19,8 +22,9 @@ import System.Cmd
 
 compile :: Either ParseError [SDec UserPrim] -> Either Failure String
 compile =  runGen
-          . eitherT (return . Left) success 
-          . (codegen <=< convert <=< cpsifySDec <=< hoistEither)
+          . eitherT (return . Left) success
+          . flip evalStateT (SVar "")
+          . (codegen <=< convert <=< cpsifySDec <=< makeMain <=< (lift . hoistEither))
           . fmap (++prims)
           . intoFail
   where success = return
@@ -38,7 +42,7 @@ compileC file code = do
       cBits = hd ++ "/.scheme2c/"
       rts   = cBits ++ "rts.c"
   writeFile cFile code
-  output <- system $ "gcc -I" ++ unwords [cBits, cFile, rts] 
+  output <- system $ "gcc -O3 -I" ++ unwords [cBits, cFile, rts] 
   print output
 
 main :: IO ()

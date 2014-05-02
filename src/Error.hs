@@ -2,10 +2,6 @@
 module Error where
 import Text.Printf
 import Control.Monad.Error
-import Control.Error
-import Gen
-
-type FailGen = EitherT Failure Gen
 
 data Stage = Parser | CPS | ClosConv | CodeGen
 

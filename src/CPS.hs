@@ -4,21 +4,25 @@ import Gen
 import AST
 import Error
 
-cpsifySDec :: [SDec UserPrim] -> FailGen [SDec CPSPrim]
+cpsifySDec :: [SDec UserPrim] -> Compiler [SDec CPSPrim]
 cpsifySDec decs = mapM toCPS decs
-  where toCPS (Def v l@(Lam{})) = Def v <$> cps l (Prim Halt)
-        toCPS (Def v e)         =
-          Def v <$> (freshLam (\res -> return $ Set v res) >>= cps e)
+  where toCPS (Init v) = return $ Init v
+        toCPS (Def _ _) = failCPS "cpsifySDec" "Found an unrewritten Def"
+        toCPS (Fun v vars exps) = do
+          newLam <- cps (Lam vars exps) (Prim Halt)
+          case newLam of
+            App (Prim Halt) [(Lam vars exps)] -> return $ Fun v vars exps
+            _                                 -> failCPS "toCPS" "Unexpected structure for newLam"
 
 (#) :: SExp p -> SExp p -> SExp p
 f # v = App f [v]
 
-runAll :: [SExp UserPrim] -> ([SExp CPSPrim] -> FailGen (SExp CPSPrim)) -> FailGen (SExp CPSPrim)
+runAll :: [SExp UserPrim] -> ([SExp CPSPrim] -> Compiler (SExp CPSPrim)) -> Compiler (SExp CPSPrim)
 runAll = go []
   where go cpsed [] f = f (reverse cpsed)
         go cpsed (e:es) f = (freshLam $ \e' -> go (e':cpsed) es f) >>= cps e
 
-cps :: SExp UserPrim -> SExp CPSPrim -> FailGen (SExp CPSPrim)
+cps :: SExp UserPrim -> SExp CPSPrim -> Compiler (SExp CPSPrim)
 cps (Lit l) k = return $ k # Lit l
 cps (Set v e) k = (freshLam $ \r -> return $ k # Set v r) >>= cps e 
 cps (Lam args exps) k = do

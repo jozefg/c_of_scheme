@@ -12,56 +12,60 @@ import Data.String
 import Data.Maybe (catMaybes)
 import Data.List (foldl')
 
-type CodeGenM = WriterT [(CDecl, Maybe String, CExpr)] (StateT (M.Map Var String) FailGen)
+type CodeGenM = WriterT [(CDecl, Maybe String, CExpr)] (StateT (M.Map Var String) Compiler)
 
 scm_t :: CDeclr -> Maybe CExpr -> CDecl
 scm_t = decl (CTypeSpec (CTypeDef "scm_t" undefNode))
 
-codegen :: [SDec ClosPrim] -> FailGen [CExtDecl]
+codegen :: [SDec ClosPrim] -> Compiler [CExtDecl]
 codegen = flip evalStateT (M.empty)
           . fmap (uncurry makeMain)
           . runWriterT
           . fmap catMaybes
+          . (<*tellMain)
           . mapM generateSDec
 
 makeMain :: [CExtDecl] -> [(CDecl, Maybe String, CExpr)] -> [CExtDecl]
 makeMain decls inits =
   map makeFunProt decls
   ++ map makeProt inits
-  ++ decls
+  ++ map gccFriendly decls
   ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
   where makeBlock = hBlock . concatMap buildExp
         buildExp (_, v, expr) = maybe [expr] ((:[]) . (<--expr) . fromString) v
         makeFunProt (CFDefExt (CFunDef specs declr _ _ a)) =
           export $ CDecl specs [(Just declr, Nothing, Nothing)] a
         makeProt = export . (\(a, _, _) -> a)
+        gccFriendly (CFDefExt (CFunDef specs decl [] stat a)) =
+          case decl of
+            CDeclr i d n _ a' -> CFDefExt (CFunDef specs (CDeclr i d n [] a') [] stat a)
+        gccFriendly a = a
 
 generateSDec :: SDec ClosPrim -> CodeGenM (Maybe CExtDecl)
-generateSDec (Def v (Lam args exps)) = do
+generateSDec (Fun v args exps) = do
   varName   <- mangle v
   arrayName <- Gen <$> gen >>= mangle
   vars <- map (scm_t . fromString) <$> mapM mangle args
   body <- map intoB <$> mapM generate exps
   -- Build the corresponding function
   let init = zipWith (assignFrom $ fromString arrayName) vars [0..]
-      lam  = fun
+      lam  = annotatedFun
              [voidTy]
              (fromString varName)
-             [scm_t . ptr $ fromString arrayName] $
+             [scm_t . ptr $ fromString arrayName]
+             ["noreturn"] $
              block $ init ++ head body : intoB ("free"#[fromString arrayName]) : tail body
   return . Just $ export lam
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
-generateSDec (Def v (App (Prim (CPSPrim Halt)) [e])) = do
+generateSDec (Init v) = do
   name <- mangle v
-  body <- generate e
-  tell [(scm_t (fromString name) Nothing, Just name, body)]
+  tell [(scm_t (fromString name) Nothing, Just name, 0)]
   return $ Nothing
-generateSDec (Def v e) = do
+generateSDec (Def v (Prim TopClos)) = do
   name <- mangle v
-  body <- generate e
-  tell [(scm_t (fromString name) Nothing, Nothing, body)]
+  tell [(scm_t (fromString name) Nothing, Just name, "scm_top_clos")]
   return $ Nothing
-
+generateSDec d = failGen "generateSDec" $ "Unmatched case for" ++ show d
 mangle :: Var -> CodeGenM String
 mangle v = do
   res <- M.lookup v <$> get
@@ -125,6 +129,7 @@ generateUserPrim p = case p of
   Car  -> return  "scm_car"
   Cdr  -> return  "scm_cdr"
   Display -> return  "display"
+  Exit    -> return $ "scm_stop"#[]
   CallCC -> failGen "generateUserPrim"  "Found a CallCC where it shouldn't be"
 
 -- | Literals generations
@@ -132,3 +137,9 @@ generateLit :: SLit -> CodeGenM CExpr
 generateLit (SInt i)  = return $ "mkInt"#[fromInteger . toInteger $ i]
 generateLit (SSym s)  = return $ "mkSym"#[fromString $ show s]
 
+tellMain :: CodeGenM ()
+tellMain = do
+  mainVar <- lift . lift $ get
+  main <- mangle mainVar
+  tell [(int "_" Nothing, Nothing, -- Dummy Declr
+        "scm_apply"#[0, "mkLam"#["scm_top_clos", fromString main]])]
