@@ -7,7 +7,7 @@
 */
 
 typedef struct scheme_val* scm_t;
-typedef void (*lam_t)(scm_t*);
+typedef void (*lam_t)(scm_t*) __attribute__((noreturn));
 /* User primitives, these are wrapped by implicit
    scheme top level declaratios in Scheme.
 

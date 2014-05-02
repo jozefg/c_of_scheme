@@ -170,7 +170,7 @@ scm_t scm_cdr(scm_t s){
   return s->val.scm_cons.tail;
 }
 
-void scm_halt(scm_t l) __attribute__((noreturn)) {exit(0)}
+void scm_halt(scm_t l) __attribute__((noreturn)) {exit(0);}
 
 scm_t scm_select_clos(int ind, scm_t clos){
   if(clos->state != 3){
