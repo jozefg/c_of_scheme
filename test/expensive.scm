@@ -1,7 +1,8 @@
 (define sum
-  (lambda (n)
+  (lambda (n s)
     (if (eq? n 0)
-        1
-        (+ 1 (sum (- n 1))))))
+        (display s)
+        (sum (- n 1)
+             (+ s 1)))))
 
-(define _ (display (sum 2000)))
+(define _ (sum 2500 0))
