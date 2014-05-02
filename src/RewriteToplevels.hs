@@ -18,7 +18,7 @@ makeMain = (>>=make) . runWriterT . mapM rewriteDec
           return $ decs ++ [Fun lVar [] $ buildLam exps]
 
 buildLam :: [(Var, SExp UserPrim)] -> [SExp UserPrim]
-buildLam = map (uncurry Set)
+buildLam = (++ [Prim Exit]) . map (uncurry Set)
 
 rewriteDec :: SDec UserPrim -> Rewrite (SDec UserPrim)
 rewriteDec (Def v (Lam vars exps)) = return (Fun v vars exps) 

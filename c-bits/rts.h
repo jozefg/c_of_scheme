@@ -34,7 +34,10 @@ scm_t scm_cons(scm_t, scm_t);
 scm_t scm_car(scm_t);
 scm_t scm_cdr(scm_t);
 
+
+scm_t scm_stop();
 void scm_halt(scm_t);
+
 
 /* Closure related RTS stuff
 

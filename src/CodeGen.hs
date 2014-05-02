@@ -22,6 +22,7 @@ codegen = flip evalStateT (M.empty)
           . fmap (uncurry makeMain)
           . runWriterT
           . fmap catMaybes
+          . (<*tellMain)
           . mapM generateSDec
 
 makeMain :: [CExtDecl] -> [(CDecl, Maybe String, CExpr)] -> [CExtDecl]
@@ -124,6 +125,7 @@ generateUserPrim p = case p of
   Car  -> return  "scm_car"
   Cdr  -> return  "scm_cdr"
   Display -> return  "display"
+  Exit    -> return $ "scm_stop"#[]
   CallCC -> failGen "generateUserPrim"  "Found a CallCC where it shouldn't be"
 
 -- | Literals generations
@@ -131,3 +133,9 @@ generateLit :: SLit -> CodeGenM CExpr
 generateLit (SInt i)  = return $ "mkInt"#[fromInteger . toInteger $ i]
 generateLit (SSym s)  = return $ "mkSym"#[fromString $ show s]
 
+tellMain :: CodeGenM ()
+tellMain = do
+  mainVar <- lift . lift $ get
+  main <- mangle mainVar
+  tell [(int "_" Nothing, Nothing, -- Dummy Declr
+        "scm_apply"#[0, "mkLam"#["scm_top_clos", fromString main]])]
