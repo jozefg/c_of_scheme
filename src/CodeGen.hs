@@ -29,13 +29,17 @@ makeMain :: [CExtDecl] -> [(CDecl, Maybe String, CExpr)] -> [CExtDecl]
 makeMain decls inits =
   map makeFunProt decls
   ++ map makeProt inits
-  ++ decls
+  ++ map gccFriendly decls
   ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
   where makeBlock = hBlock . concatMap buildExp
         buildExp (_, v, expr) = maybe [expr] ((:[]) . (<--expr) . fromString) v
         makeFunProt (CFDefExt (CFunDef specs declr _ _ a)) =
           export $ CDecl specs [(Just declr, Nothing, Nothing)] a
         makeProt = export . (\(a, _, _) -> a)
+        gccFriendly (CFDefExt (CFunDef specs decl [] stat a)) =
+          case decl of
+            CDeclr i d n _ a' -> CFDefExt (CFunDef specs (CDeclr i d n [] a') [] stat a)
+        gccFriendly a = a
 
 generateSDec :: SDec ClosPrim -> CodeGenM (Maybe CExtDecl)
 generateSDec (Fun v args exps) = do

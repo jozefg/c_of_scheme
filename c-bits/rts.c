@@ -97,7 +97,7 @@ scm_t display(scm_t s){
   return s;
 }
 
-void scm_apply(int i, scm_t f, ...) __attribute__((noreturn)) {
+void scm_apply(int i, scm_t f, ...) {
   int x;
   va_list va;
   scm_t *arg_list = malloc(sizeof(scm_t) * i + 1);
@@ -170,7 +170,7 @@ scm_t scm_cdr(scm_t s){
   return s->val.scm_cons.tail;
 }
 
-void scm_halt(scm_t l) __attribute__((noreturn)) {exit(0);}
+void scm_halt(scm_t l) {exit(0);}
 scm_t scm_stop(){
   exit(0);
   return NULL;
