@@ -3,13 +3,22 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <setjmp.h> // Weeeee
+
+// Global variables for preserving
+// continuations during longjmp's
+static scm_t  current_fun;
+static scm_t* current_args;
+static jmp_buf env;
+// Global counter of function calls
+static int stack_frames;
 
 struct scheme_val;
 typedef struct clos {
   struct scheme_val** closed;
   int length;
 } clos_t;
-  
+
 typedef struct {
   struct scheme_val *head;
   struct scheme_val *tail;
@@ -97,6 +106,15 @@ scm_t display(scm_t s){
   return s;
 }
 
+void scm_init(lam_t f){
+  stack_frames = 0;
+
+  if(setjmp(env)){
+    current_fun->val.scm_lam.fun(current_args);
+  }
+  scm_apply(0, mkLam(scm_top_clos, f)); // Call main
+}
+
 void scm_apply(int i, scm_t f, ...) {
   int x;
   va_list va;
@@ -110,6 +128,14 @@ void scm_apply(int i, scm_t f, ...) {
     exit(1);
   } else {
     arg_list[0] = f->val.scm_lam.clos;
+
+    if(stack_frames >= 100){
+      // Transfer continuation up
+      current_fun     = f;
+      current_args    = arg_list;
+      longjmp(env, 1);
+    }
+    ++stack_frames;
     f->val.scm_lam.fun(arg_list);
   }
 }
@@ -145,7 +171,6 @@ scm_t scm_div(scm_t l, scm_t r){
   return mkInt(l->val.scm_int / r->val.scm_int);
 }
 
-
 scm_t scm_cons(scm_t h, scm_t t){
   scm_t scm_s = scm_malloc();
   struct scheme_val s = {.state = 2,
@@ -175,6 +200,7 @@ scm_t scm_stop(){
   exit(0);
   return NULL;
 }
+
 scm_t scm_select_clos(int ind, scm_t clos){
   if(clos->state != 3){
     printf("Attempted to select with non-closure\n");
