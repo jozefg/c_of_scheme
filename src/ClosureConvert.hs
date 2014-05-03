@@ -51,6 +51,12 @@ isCloseVar v = M.member v <$> ask
 isGlobalVar :: Var -> ClosM Bool
 isGlobalVar v = S.member v <$> get
 
+writeToClos :: [Int] -> SExp CPSPrim -> Var -> SExpM
+writeToClos path exp c =
+  App (Prim WriteClos) <$>
+  sequence [return . Lit  $ SInt (last path)
+           ,closeOver c exp
+           ,return . Prim $ SelectClos (init path) c]
 
 closeVar :: Var {- Actual var -} -> Var {- Continuation var -} -> SExpM
 closeVar v c = do
@@ -78,7 +84,7 @@ closeOver c (Set v exp) = do
   closedVar <- closeOver c (Var v)
   case closedVar of
     Var v'  -> Set v' <$> closeOver c exp
-    Prim x  -> App (Prim WriteClos) <$> sequence [return $ Prim x, closeOver c exp]
+    Prim (SelectClos path c) -> writeToClos path exp c
     Lam _ [App (Var v') _] -> Set v' <$> closeOver c exp
 closeOver c (Lam vars exps) = do
   lambdaName <- Gen <$> gen
