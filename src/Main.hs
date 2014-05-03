@@ -35,10 +35,10 @@ compile =  runGen
         intoFail (Left e)  = Left $ Failure Parser "parseSDec" (show e)
         intoFail (Right r) = Right r
 
-compileC :: String -> String -> IO ()
-compileC file code = do
+compileC :: String -> IO ()
+compileC code = do
   UserEntry{homeDirectory = hd} <- getRealUserID >>= getUserEntryForID
-  let cFile = file ++ ".c"
+  let cFile = "out.c"
       cBits = hd ++ "/.scheme2c/"
       rts   = cBits ++ "rts.c"
   writeFile cFile code
@@ -47,10 +47,10 @@ compileC file code = do
 
 main :: IO ()
 main = do
-  [file] <- getArgs
-  res <- parseFile file
-  case compile res of
-    Right source -> compileC file source
+  files <- getArgs
+  res <- mapM parseFile $ files
+  case compile (fmap concat . sequence $ res) of
+    Right source -> compileC source
     Left  e      -> errLn (presentError e)
 
 prims :: [SDec UserPrim]
