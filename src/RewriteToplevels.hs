@@ -3,6 +3,7 @@ module RewriteToplevels (makeMain) where
 import Control.Monad.Writer
 import Control.Monad.State
 import Gen
+import Error
 import AST
 import Control.Applicative
 
@@ -27,4 +28,5 @@ buildLam = (++ [Prim Exit]) . map (uncurry Set)
 -- This also hints at what needs to be initialized for 'makeMain'.
 rewriteDec :: SDec UserPrim -> Rewrite (SDec UserPrim)
 rewriteDec (Def v (Lam vars exps)) = return (Fun v vars exps) 
-rewriteDec (Def v e)              = tell [(v, e)] >> return (Init v)
+rewriteDec (Def v e)               = tell [(v, e)] >> return (Init v)
+rewriteDec _                       = failRW "rewriteDec" "found unexpected value, not a Dec!"

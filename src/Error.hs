@@ -3,7 +3,7 @@ module Error where
 import Text.Printf
 import Control.Monad.Error
 
-data Stage = Parser | CPS | ClosConv | CodeGen
+data Stage = Parser | Rewrite | CPS | ClosConv | CodeGen
 
 type Loc  = String
 type Info = String
@@ -19,7 +19,11 @@ presentError Failure{..} =
           ClosConv -> "converting closures and lambda lifting"
           CodeGen  -> "generating C code"
           Parser   -> "parsing"
+          Rewrite  -> "rewriting"
 
+
+failRW :: MonadError Failure m => Loc -> Info -> m a
+failRW loc info = throwError $ Failure Rewrite loc info
 
 failCPS :: MonadError Failure m => Loc -> Info -> m a
 failCPS loc info = throwError $ Failure CPS loc info
