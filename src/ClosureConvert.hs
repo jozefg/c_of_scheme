@@ -26,12 +26,13 @@ type ClosM    = StateT GlobalVars (WriterT Closures (ReaderT ClosPath Compiler))
 type SExpM    = ClosM (SExp ClosPrim)
 
 runClosM :: GlobalVars -> ClosM [SDec ClosPrim]  -> Compiler [SDec ClosPrim]
-runClosM decNames = fmap combine
+runClosM decNames = (>>=combine)
                     . flip runReaderT M.empty
                     . runWriterT
                     . flip evalStateT decNames
-  where combine (results, closVars) = map build closVars ++ results
-        build (v, Lam vars exps) = Fun v vars exps
+  where combine (results, closVars) = (++results)<$> mapM build closVars
+        build (v, Lam vars exps) = return $ Fun v vars exps
+        build _                  = failClos "build" "unexpected value, not a lambda"
         
 
 closConvert :: [SDec CPSPrim] -> Compiler [SDec ClosPrim]
@@ -42,8 +43,9 @@ closConvert decs = runClosM (buildEnv decs) $ do
   where buildEnv = foldr addEnv S.empty . filter notLam
         notLam Fun{} = False
         notLam _     = True
-        addEnv (Init n) m    = S.insert n m
+        addEnv (Init n)    m = S.insert n m
         addEnv (Fun n _ _) m = S.insert n m
+        addEnv (Def n _)   m = S.insert n m
 
 isCloseVar :: Var -> ClosM Bool
 isCloseVar v = M.member v <$> ask
@@ -86,6 +88,7 @@ closeOver c (Set v exp) = do
     Var v'  -> Set v' <$> closeOver c exp
     Prim (SelectClos path c) -> writeToClos path exp c
     Lam _ [App (Var v') _] -> Set v' <$> closeOver c exp
+    _ -> failClos "closeOver" "closeOver returned a nonsensical variable"
 closeOver c (Lam vars exps) = do
   lambdaName <- Gen <$> gen
   lifted <- liftedLam
