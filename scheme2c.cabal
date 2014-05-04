@@ -23,5 +23,6 @@ executable scheme2c
                        unix,
                        errors >= 1.3
   hs-source-dirs:      src
+  ghc-options:         -Wall -fno-warn-name-shadowing
   default-language:    Haskell2010
   
