@@ -49,24 +49,25 @@ generateSDec (Fun v args exps) = do
   vars <- map (scm_t . fromString) <$> mapM mangle args
   body <- map intoB <$> mapM generate exps
   -- Build the corresponding function
-  let init = zipWith (assignFrom $ fromString arrayName) vars [0..]
+  let inits = zipWith (assignFrom $ fromString arrayName) vars [0..]
       lam  = annotatedFun
              [voidTy]
              (fromString varName)
              [scm_t . ptr $ fromString arrayName]
              ["noreturn"] $
-             block $ init ++ head body : intoB ("free"#[fromString arrayName]) : tail body
+             block $ inits ++ head body : intoB ("free"#[fromString arrayName]) : tail body
   return . Just $ export lam
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
-generateSDec (Init v) = do
+generateSDec (Init v) = simpleSDec v
+generateSDec (Def v (Prim TopClos)) = simpleSDec v
+generateSDec d = failGen "generateSDec" $ "Unmatched case for" ++ show d
+
+simpleSDec :: Var -> CodeGenM (Maybe a)
+simpleSDec v = do
   name <- mangle v
   tell [(scm_t (fromString name) Nothing, Just name, 0)]
-  return $ Nothing
-generateSDec (Def v (Prim TopClos)) = do
-  name <- mangle v
-  tell [(scm_t (fromString name) Nothing, Just name, "scm_top_clos")]
-  return $ Nothing
-generateSDec d = failGen "generateSDec" $ "Unmatched case for" ++ show d
+  return Nothing
+
 mangle :: Var -> CodeGenM String
 mangle v = do
   res <- M.lookup v <$> get
