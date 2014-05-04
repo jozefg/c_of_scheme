@@ -33,14 +33,18 @@ makeMain decls inits =
   ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
   where makeBlock = hBlock . concatMap buildExp
         buildExp (_, v, expr) = maybe [expr] ((:[]) . (<--expr) . fromString) v
-        makeFunProt (CFDefExt (CFunDef specs declr _ _ a)) = Just . export $
-                                                             CDecl specs [(Just declr, Nothing, Nothing)] a
-        makeFunProt _                                      = Nothing
         makeProt = export . (\(a, _, _) -> a)
-        gccFriendly (CFDefExt (CFunDef specs decl [] stat a)) =
-          case decl of
-            CDeclr i d n _ a' -> CFDefExt (CFunDef specs (CDeclr i d n [] a') [] stat a)
-        gccFriendly a = a
+
+gccFriendly :: CExtDecl -> CExtDecl
+gccFriendly (CFDefExt (CFunDef specs decl [] stat a)) =
+  case decl of
+    CDeclr i d n _ a' -> CFDefExt (CFunDef specs (CDeclr i d n [] a') [] stat a)
+gccFriendly a = a
+
+makeFunProt :: CExtDecl -> Maybe CExtDecl
+makeFunProt (CFDefExt (CFunDef specs declr _ _ a)) =
+  Just . export $ CDecl specs [(Just declr, Nothing, Nothing)] a
+makeFunProt _                                      = Nothing
 
 generateSDec :: SDec ClosPrim -> CodeGenM (Maybe CExtDecl)
 generateSDec (Fun v args exps) = do
@@ -93,8 +97,6 @@ generate (Set v e) = (<--) <$> fmap fromString (mangle v) <*> generate e
 generate (Lit l)   = generateLit l
 generate (Prim p)  = generatePrim p
 generate Lam{}     = failGen "generate" "unlifted lambda in a bad spot"
-
-
 
 -- | Generate a new lambda applied to some arguments
 generateLam :: [SExp ClosPrim] -> [SExp ClosPrim] -> CodeGenM CExpr
