@@ -1,5 +1,7 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances, MultiParamTypeClasses #-}
-{-# LANGUAGE UndecidableInstances                                                 #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances, DeriveFunctor      #-}
+
+-- Explicitly turn of Safe so we can use 
 module Gen where
 import Control.Monad.State
 import Control.Monad.Reader
@@ -9,7 +11,14 @@ import Control.Applicative
 import Control.Error
 
 newtype GenT m a = GenT {unGenT :: StateT Integer m a}
-                    deriving(Functor, Applicative, Monad)
+                    deriving(Functor)
+instance Monad m => Monad (GenT m) where
+  return = GenT . return
+  (GenT m) >>= f = GenT $ m >>= unGenT . f
+instance (Functor f, Monad f) => Applicative (GenT f) where
+  pure = GenT . pure
+  (GenT f) <*> (GenT a) = GenT $ f <*> a
+
 type Gen = GenT Identity
 
 instance MonadTrans GenT where
