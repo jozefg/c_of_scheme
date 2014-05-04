@@ -62,14 +62,14 @@ generateSDec (Fun v args exps) = do
              block $ inits ++ head body : intoB ("free"#[fromString arrayName]) : tail body
   return . Just $ export lam
   where assignFrom arr var i = intoB $ var .= (arr ! fromInteger i)
-generateSDec (Init v) = simpleSDec v
-generateSDec (Def v (Prim TopClos)) = simpleSDec v
+generateSDec (Init v) = simpleSDec v 0
+generateSDec (Def v (Prim TopClos)) = simpleSDec v "scm_top_clos"
 generateSDec d = failGen "generateSDec" $ "Unmatched case for" ++ show d
 
-simpleSDec :: Var -> CodeGenM (Maybe a)
-simpleSDec v = do
+simpleSDec :: Var -> CExpr -> CodeGenM (Maybe a)
+simpleSDec v e = do
   name <- mangle v
-  tell [(scm_t (fromString name) Nothing, Just name, 0)]
+  tell [(scm_t (fromString name) Nothing, Just name, e)]
   return Nothing
 
 mangle :: Var -> CodeGenM String
