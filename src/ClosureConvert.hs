@@ -25,6 +25,7 @@ type Closures = [(Var, SExp ClosPrim)]
 type ClosM    = StateT GlobalVars (WriterT Closures (ReaderT ClosPath Compiler))
 type SExpM    = ClosM (SExp ClosPrim)
 
+-- | Given an environment of global variables, run a closure conversion computation
 runClosM :: GlobalVars -> ClosM [SDec ClosPrim]  -> Compiler [SDec ClosPrim]
 runClosM decNames = (>>=combine)
                     . flip runReaderT M.empty
@@ -34,7 +35,9 @@ runClosM decNames = (>>=combine)
         build (v, Lam vars exps) = return $ Fun v vars exps
         build _                  = failClos "build" "unexpected value, not a lambda"
         
-
+-- | The main function, leaves 'Init' alone but closure converts
+-- 'Fun's. This also generates a *ton* of other top level functions
+-- as part of lambda lifting.
 closConvert :: [SDec CPSPrim] -> Compiler [SDec ClosPrim]
 closConvert decs = runClosM (buildEnv decs) $ do
   undefinedClos <- Gen <$> gen
@@ -47,12 +50,16 @@ closConvert decs = runClosM (buildEnv decs) $ do
         addEnv (Fun n _ _) m = S.insert n m
         addEnv (Def n _)   m = S.insert n m
 
+-- | Is a variable a member of some closure?
 isCloseVar :: Var -> ClosM Bool
 isCloseVar v = M.member v <$> ask
 
+-- | Is a variable a top level decl?
 isGlobalVar :: Var -> ClosM Bool
 isGlobalVar v = S.member v <$> get
 
+-- | Mutate an element in a closure given its position,
+-- closure, and new value.
 writeToClos :: [Int] -> SExp CPSPrim -> Var -> SExpM
 writeToClos path exp c =
   App (Prim WriteClos) <$>
@@ -60,7 +67,8 @@ writeToClos path exp c =
            ,closeOver c exp
            ,return . Prim $ SelectClos (init path) c]
 
-closeVar :: Var {- Actual var -} -> Var {- Continuation var -} -> SExpM
+-- | Close over a variable given its closure.
+closeVar :: Var {- Actual var -} -> Var {- Closure var -} -> SExpM
 closeVar v c = do
   closedVar <- isCloseVar v
   globalVar <- isGlobalVar v
@@ -73,7 +81,8 @@ closeVar v c = do
               -- Note, we supply all functions with the current closure
               -- top level functions will simply discard it.return $ Var v
 
-
+-- | Main closConvert function, puts lifted lambdas into a writer monad
+-- and explicitly converts all other expressions.
 closeOver :: Var -> SExp CPSPrim -> SExpM
 closeOver _ (Prim p) = return $ Prim (CPSPrim p)
 closeOver c (Var v)  = closeVar v c
@@ -103,6 +112,9 @@ closeOver c (Lam vars exps) = do
         addClos m = local (M.union newVars . M.map (0:)) $ m
         newVars = M.fromList $ zip vars (map pure [1..])
 
+-- | Converts a declaration using the top level continuation variable
+-- provided. Most of the work is in setting up the new closure converted
+-- function's definitions.
 convertDecs :: Var -> [SDec CPSPrim] -> ClosM [SDec ClosPrim]
 convertDecs c = mapM convertDec
   where convertDec (Fun n vars exps) = do
