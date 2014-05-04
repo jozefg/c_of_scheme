@@ -20,6 +20,8 @@ import System.Environment
 import System.Posix.User
 import System.Cmd
 
+-- | The big compilation function, chains together each section of the
+-- compiler and returns either a failure or the C code as a string.
 compile :: Either ParseError [SDec UserPrim] -> Either Failure String
 compile =  runGen
           . eitherT (return . Left) success
@@ -35,6 +37,8 @@ compile =  runGen
         intoFail (Left e)  = Left $ Failure Parser "parseSDec" (show e)
         intoFail (Right r) = Right r
 
+-- | A hacky way to automatically compile the C
+-- code using GCC, assumes the RTS is in ~/.scheme2c/
 compileC :: String -> IO ()
 compileC code = do
   UserEntry{homeDirectory = hd} <- getRealUserID >>= getUserEntryForID
@@ -53,6 +57,8 @@ main = do
     Right source -> compileC source
     Left  e      -> errLn (presentError e)
 
+-- | List of primitives wrapped in fully eta-converted
+-- functions. These will be properly CPS converted.
 prims :: [SDec UserPrim]
 prims = [ Def (SVar "+") $ Lam [a, b] [Plus # [a', b']]
         , Def (SVar "-") $ Lam [a, b] [Sub #  [a', b']]
