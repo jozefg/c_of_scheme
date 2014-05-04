@@ -1,11 +1,11 @@
-module CPS where
+module CPS (cpsify) where
 import Control.Applicative
 import Gen
 import AST
 import Error
 
-cpsifySDec :: [SDec UserPrim] -> Compiler [SDec CPSPrim]
-cpsifySDec decs = mapM toCPS decs
+cpsify :: [SDec UserPrim] -> Compiler [SDec CPSPrim]
+cpsify decs = mapM toCPS decs
   where toCPS (Init v) = return $ Init v
         toCPS (Def _ _) = failCPS "cpsifySDec" "Found an unrewritten Def"
         toCPS (Fun v vars exps) = do

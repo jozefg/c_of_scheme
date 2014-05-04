@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module CodeGen where
+module CodeGen (codegen) where
 import Gen
 import Error
 import AST

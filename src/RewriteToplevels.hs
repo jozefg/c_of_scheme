@@ -1,4 +1,4 @@
-module RewriteToplevels where
+module RewriteToplevels (makeMain) where
 
 import Control.Monad.Writer
 import Control.Monad.State

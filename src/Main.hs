@@ -3,7 +3,7 @@ import AST
 import CPS
 import RewriteToplevels
 import ClosureConvert
-import CodeGen hiding(makeMain)
+import CodeGen
 import Parser
 import Gen
 import Error
@@ -26,7 +26,7 @@ compile :: Either ParseError [SDec UserPrim] -> Either Failure String
 compile =  runGen
           . eitherT (return . Left) success
           . flip evalStateT (SVar "")
-          . (codegen <=< convert <=< cpsifySDec <=< makeMain <=< (lift . hoistEither))
+          . (codegen <=< closConvert <=< cpsify <=< makeMain <=< (lift . hoistEither))
           . fmap (++prims)
           . intoFail
   where success = return

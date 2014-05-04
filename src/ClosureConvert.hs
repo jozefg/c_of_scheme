@@ -1,4 +1,4 @@
-module ClosureConvert where
+module ClosureConvert (closConvert) where
 import AST
 import Gen
 import Error
@@ -34,8 +34,8 @@ runClosM decNames = fmap combine
         build (v, Lam vars exps) = Fun v vars exps
         
 
-convert :: [SDec CPSPrim] -> Compiler [SDec ClosPrim]
-convert decs = runClosM (buildEnv decs) $ do
+closConvert :: [SDec CPSPrim] -> Compiler [SDec ClosPrim]
+closConvert decs = runClosM (buildEnv decs) $ do
   undefinedClos <- Gen <$> gen
   newDecs       <- convertDecs undefinedClos decs
   return $ (Def undefinedClos $ Prim TopClos) : newDecs
