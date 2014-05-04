@@ -9,7 +9,7 @@ import Control.Applicative
 import qualified Data.Map as M
 import Language.C.DSL
 import Data.String
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, mapMaybe)
 import Data.List (foldl')
 
 type CodeGenM = WriterT [(CDecl, Maybe String, CExpr)] (StateT (M.Map Var String) Compiler)
@@ -27,14 +27,15 @@ codegen = flip evalStateT (M.empty)
 
 makeMain :: [CExtDecl] -> [(CDecl, Maybe String, CExpr)] -> [CExtDecl]
 makeMain decls inits =
-  map makeFunProt decls
+  mapMaybe makeFunProt decls
   ++ map makeProt inits
   ++ map gccFriendly decls
   ++ [export $ fun [intTy] "main"[] (makeBlock inits)]
   where makeBlock = hBlock . concatMap buildExp
         buildExp (_, v, expr) = maybe [expr] ((:[]) . (<--expr) . fromString) v
-        makeFunProt (CFDefExt (CFunDef specs declr _ _ a)) =
-          export $ CDecl specs [(Just declr, Nothing, Nothing)] a
+        makeFunProt (CFDefExt (CFunDef specs declr _ _ a)) = Just . export $
+                                                             CDecl specs [(Just declr, Nothing, Nothing)] a
+        makeFunProt _                                      = Nothing
         makeProt = export . (\(a, _, _) -> a)
         gccFriendly (CFDefExt (CFunDef specs decl [] stat a)) =
           case decl of
@@ -117,6 +118,8 @@ generatePrim WriteClos              = return "scm_write_clos"
 generatePrim (SelectClos path v) =  makePath path <$> generate (Var v)
   where toCInt = fromInteger . toInteger
         makePath = flip . foldl' $ \cexpr i -> "scm_select_clos"#[toCInt i, cexpr]
+generatePrim _  = failGen "generatePrim" "found a Prim that should have been generated earlier"
+
 -- | The massive switch to generate the rts calls for primops
 generateUserPrim :: UserPrim -> CodeGenM CExpr
 generateUserPrim p = case p of

@@ -21,7 +21,9 @@ parseSInt :: Parser (SExp UserPrim)
 parseSInt = Lit . SInt <$> parseNum
 
 spaces1 :: Parser ()
-spaces1 = spaces *> spaces 
+spaces1 = spaces *> spaces
+
+spaced :: Parser a -> Parser a
 spaced = (<* spaces)
 
 paren :: Parser a -> Parser a
