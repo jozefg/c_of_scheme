@@ -4,6 +4,9 @@ import Gen
 import AST
 import Error
 
+-- | The driver for CPS conversion, leaves @Init@'s alone
+-- and fails when given @Def@s. Otherwise it converts
+-- a lambda to CPS style.
 cpsify :: [SDec UserPrim] -> Compiler [SDec CPSPrim]
 cpsify decs = mapM toCPS decs
   where toCPS (Init v) = return $ Init v
@@ -14,14 +17,18 @@ cpsify decs = mapM toCPS decs
             App (Prim Halt) [(Lam vars exps)] -> return $ Fun v vars exps
             _                                 -> failCPS "toCPS" "Unexpected structure for newLam"
 
+-- | A simple short hand for application
 (#) :: SExp p -> SExp p -> SExp p
 f # v = App f [v]
 
+-- | Run all the expressions in a given list and feed it to a first-class continuation.
 runAll :: [SExp UserPrim] -> ([SExp CPSPrim] -> Compiler (SExp CPSPrim)) -> Compiler (SExp CPSPrim)
 runAll = go []
   where go cpsed [] f = f (reverse cpsed)
         go cpsed (e:es) f = (freshLam $ \e' -> go (e':cpsed) es f) >>= cps e
 
+-- | The big set of CPS conversion rules, we take an expression and a
+-- continuation and convert it to CPS.
 cps :: SExp UserPrim -> SExp CPSPrim -> Compiler (SExp CPSPrim)
 cps (Lit l) k = return $ k # Lit l
 cps (Set v e) k = (freshLam $ \r -> return $ k # Set v r) >>= cps e 
