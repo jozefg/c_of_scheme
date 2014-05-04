@@ -56,6 +56,8 @@ data SDec p = Def Var (SExp p)
 
 instance Show p => Show (SDec p) where
   show (Def v e) = "(define "++show v++"\n  "++show e++")"
+  show (Init v)  = "(predec "++show v++")"
+  show (Fun v vars exps) = show $ Def v (Lam vars exps)
 
 type Compiler = StateT Var (EitherT Failure Gen)
 
