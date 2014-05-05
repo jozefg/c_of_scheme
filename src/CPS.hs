@@ -8,7 +8,7 @@ import Error
 -- and fails when given @Def@s. Otherwise it converts
 -- a lambda to CPS style.
 cpsify :: [SDec UserPrim] -> Compiler [SDec CPSPrim]
-cpsify decs = mapM toCPS decs
+cpsify decs = (:) <$> callcc <*> mapM toCPS decs
   where toCPS (Init v) = return $ Init v
         toCPS (Def _ _) = failCPS "cpsifySDec" "Found an unrewritten Def"
         toCPS (Fun v vars exps) = do
@@ -16,6 +16,16 @@ cpsify decs = mapM toCPS decs
           case newLam of
             App (Prim Halt) [(Lam vars exps)] -> return $ Fun v vars exps
             _                                 -> failCPS "toCPS" "Unexpected structure for newLam"
+
+
+callcc :: Compiler (SDec CPSPrim)
+callcc = do
+  f      <- Gen <$> gen
+  k      <- Gen <$> gen
+  k'     <- Gen <$> gen
+  result <- Gen <$> gen
+  return $ Fun (SVar "call/cc") [k, f]
+    [App (Var f) [Var k, Lam [k', result] [Var k # Var result]]]
 
 -- | A simple short hand for application
 (#) :: SExp p -> SExp p -> SExp p
@@ -51,11 +61,4 @@ cps (App (Lam vars exps) args) k = unfoldArgs vars args
 cps (App f args) k = runAll args $ useArgs f
   where useArgs (Prim p) cArgs = return $ k # App (Prim $ UserPrim p) cArgs
         useArgs f        cArgs = freshLam (\f' -> return $ App f' (k:cArgs)) >>= cps f
-cps (Prim CallCC) k = do
-  cont' <- cont
-  freshLam $ \f -> return $ f `App` [k, cont']
-  where cont = do
-          k'      <- Gen <$> gen
-          result  <- Gen <$> gen
-          return $ Lam [k', result] [k # Var result]
 cps (Prim p) k = return $ k # Prim (UserPrim p)
