@@ -42,7 +42,7 @@ closConvert :: [SDec CPSPrim] -> Compiler [SDec ClosPrim]
 closConvert decs = runClosM (buildEnv decs) $ do
   undefinedClos <- Gen <$> gen
   newDecs       <- convertDecs undefinedClos decs
-  return $ (Def undefinedClos $ Prim TopClos) : newDecs
+  return $ Def undefinedClos (Prim TopClos) : newDecs
   where buildEnv = foldr addEnv S.empty . filter notLam
         notLam Fun{} = False
         notLam _     = True
@@ -106,7 +106,7 @@ closeOver c (Lam vars exps) = do
           newClos  <- Gen <$> gen
           exps'    <- addClos $ mapM (closeOver newClos) exps
           return . Lam (closName : vars) $
-            Prim (NewClos newClos) `App` (map Var $ closName : vars) : exps'
+            Prim (NewClos newClos) `App` map Var (closName : vars) : exps'
         addClos m = local (M.union newVars . M.map (0:)) $ m
         newVars = M.fromList $ zip vars (map pure [1..])
 
@@ -123,5 +123,5 @@ convertDecs c = mapM convertDec
             Prim (NewClos newClos) `App` (map Var $ c : vars) : exps'
         convertDec (Init v)  = return $ Init v
         convertDec (Def _ _) = failClos "convertDec" "Found an unrewritten Dec!" 
-        addClos vars m = local (M.union (newVars vars) . M.map (0:)) $ m
+        addClos vars m = local (M.union (newVars vars) . M.map (0:)) m
         newVars vars = M.fromList $ zip vars (map pure [1..])

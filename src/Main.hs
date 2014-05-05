@@ -52,7 +52,7 @@ compileC code = do
 main :: IO ()
 main = do
   files <- getArgs
-  res <- mapM parseFile $ files
+  res <- mapM parseFile files
   case compile (fmap concat . sequence $ res) of
     Right source -> compileC source
     Left  e      -> errLn (presentError e)
