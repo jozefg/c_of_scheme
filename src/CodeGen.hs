@@ -136,7 +136,6 @@ generateUserPrim p = case p of
   Cdr  -> return  "scm_cdr"
   Display -> return  "display"
   Exit    -> return $ "scm_stop"#[]
-  CallCC -> failGen "generateUserPrim"  "Found a CallCC where it shouldn't be"
 
 -- | Literals generations
 generateLit :: SLit -> CodeGenM CExpr
