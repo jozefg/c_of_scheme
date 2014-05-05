@@ -77,7 +77,7 @@ closeVar v c = do
              return . Prim $ SelectClos path c
     else if globalVar then
            return $ Var v
-         else return $ Prim MkLam `App` [Var c, Var v]
+         else return $ Prim MkLam `App` [Lit $ SInt 0, Var v]
               -- Note, we supply all functions with the current closure
               -- top level functions will simply discard it.return $ Var v
 
