@@ -110,6 +110,7 @@ void scm_init(lam_t f){
   stack_frames = 0;
 
   if(setjmp(env)){
+    stack_frames = 0;
     current_fun->val.scm_lam.fun(current_args);
   }
   scm_apply(0, mkLam(scm_top_clos, f)); // Call main
