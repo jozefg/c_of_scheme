@@ -20,10 +20,7 @@ cpsify decs = (:) <$> callcc <*> mapM toCPS decs
 
 callcc :: Compiler (SDec CPSPrim)
 callcc = do
-  f      <- Gen <$> gen
-  k      <- Gen <$> gen
-  k'     <- Gen <$> gen
-  result <- Gen <$> gen
+  [f, k, k', result] <- map Gen <$> sequence [gen, gen, gen, gen]
   return $ Fun (SVar "call/cc") [k, f]
     [App (Var f) [Var k, Lam [k', result] [Var k # Var result]]]
 
