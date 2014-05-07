@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <setjmp.h> // Weeeee
+#include <glib.h>  // For hashtables
 
 // Global variables for preserving
 // continuations during longjmp's
@@ -14,10 +15,16 @@ static jmp_buf env;
 // Global counter of function calls
 static int stack_frames;
 
+// A global registery of allocated closures, needed
+// for GC
+GHashTable* live_closures;
+
+// Types
 struct scheme_val;
 typedef struct clos {
   struct scheme_val** closed;
   int length;
+  int live; // Used by mark-and-sweep GC
 } clos_t;
 
 typedef struct {
@@ -65,7 +72,7 @@ scm_t mkClos(int i, ...){
   int x;
   scm_t result = scm_malloc();
   scm_t *closed = malloc(sizeof(scm_t) * i);
-  struct scheme_val s = {.state = 3, {.scm_clos = {.closed = NULL, .length = i}}};
+  struct scheme_val s = {.state = 3, {.scm_clos = {.closed = NULL, .length = i, .live = 0}}};
 
   va_start(ap, i);
   for(x = 0; x < i; ++x){
@@ -74,6 +81,7 @@ scm_t mkClos(int i, ...){
   va_end(ap);
   s.val.scm_clos.closed = closed;
   memcpy(result, &s, sizeof *result);
+  g_hash_table_add(live_closures, result);
   return result;
 }
 
@@ -133,11 +141,50 @@ scm_t display(scm_t s){
   return s;
 }
 
+void mark(scm_t root){
+  int i;
+  scm_t obj;
+  if(root->state != 3){
+    printf("Gave nonclosure scm_t as root!\n");
+    exit(1);
+  }
+  root->val.scm_clos.live = 1;
+
+  for(i = 0; i < root->val.scm_clos.length; ++i){
+    obj = root->val.scm_clos.closed[i];
+    if(obj->state != 3 && obj->state != 4) continue; // Don't care about not closures
+    if(obj->state == 3){
+      mark(obj); // DFS on closures
+    } else {
+      mark(obj->val.scm_lam.clos); // Use lambda's closures too
+    }
+  }
+}
+
+void sweep(){
+  GHashTableIter iter;
+  void *key, *value;
+  int live;
+  g_hash_table_iter_init(&iter, live_closures);
+  while (g_hash_table_iter_next(&iter, &key, &value)){
+    live = ((scm_t) key)->val.scm_clos.live;
+    if(!live){ // If unmarked, sweep
+      free_scm_t(key);
+    }
+  }
+}
+
 void scm_init(lam_t f){
+  live_closures = g_hash_table_new(NULL, NULL); // Setup the hashtable, NULL and NULL 
+                                                // directs glib to use simple hash & eq functions
   stack_frames = 0;
 
   if(setjmp(env)){
     stack_frames = 0;
+    // Do GC
+    mark(current_args[0]); // The root is the current closure which is always the first arg
+    sweep();
+    // Call next continuation
     current_fun->val.scm_lam.fun(current_args);
   }
   scm_apply(0, mkLam(scm_top_clos, f)); // Call main
