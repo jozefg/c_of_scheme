@@ -46,7 +46,7 @@ compileC code = do
       cBits = hd ++ "/.scheme2c/"
       rts   = cBits ++ "rts.c"
   writeFile cFile code
-  output <- system $ "gcc -O3 -I" ++ unwords [cBits, cFile, rts] 
+  output <- system $ "gcc -O3 -I" ++ unwords [cBits, cFile, rts] ++ "  `pkg-config --cflags --libs glib-2.0`"
   print output
 
 main :: IO ()
