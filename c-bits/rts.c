@@ -10,6 +10,7 @@
 static scm_t  current_fun;
 static scm_t* current_args;
 static jmp_buf env;
+
 // Global counter of function calls
 static int stack_frames;
 
@@ -82,6 +83,32 @@ scm_t mkLam(scm_t c, lam_t l){
   memcpy(scm_s, &s, sizeof *scm_s);
   return scm_s;
 }
+
+void free_scm_t(scm_t t){
+  int i;
+  switch(t->state){
+  case 0:
+    // No freeing for an integer
+    break;
+  case 1:
+    free(t->val.scm_sym);
+    break;
+  case 2:
+    free_scm_t(t->val.scm_cons.head);
+    free_scm_t(t->val.scm_cons.tail);
+    break;
+  case 3:
+    for(i = 0; i < t->val.scm_clos.length; ++i){
+      free_scm_t(t->val.scm_clos.closed[i]);
+    }
+    break;
+  case 4:
+   free_scm_t(t->val.scm_lam.clos);
+   break;
+  }
+  free(t);
+}
+
 
 int scm_eq_raw(scm_t l, scm_t r){
   if(l->state != r->state)
