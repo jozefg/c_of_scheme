@@ -93,31 +93,8 @@ scm_t mkLam(scm_t c, lam_t l){
 }
 
 void free_scm_t(scm_t t){
-  if(!t) return; // scm_top_clos strikes again!
-  int i;
-  switch(t->state){
-  case 0:
-    // No freeing for an integer
-    break;
-  case 1:
-    free(t->val.scm_sym);
-    break;
-  case 2:
-    free_scm_t(t->val.scm_cons.head);
-    free_scm_t(t->val.scm_cons.tail);
-    break;
-  case 3:
-    if(t->val.scm_clos.live != 0) break;
-    t->val.scm_clos.live = -1;
-    for(i = 0; i < t->val.scm_clos.length; ++i){
-      free_scm_t(t->val.scm_clos.closed[i]);
-    }
-    break;
-  case 4:
-   free_scm_t(t->val.scm_lam.clos);
-   break;
-  }
   free(t);
+  t = NULL; // Leaks subchildren
 }
 
 
@@ -171,25 +148,23 @@ void mark(scm_t root){
 }
 
 void sweep(){
-  GHashTableIter iter;
-  void *key, *value;
   int live;
-  g_hash_table_iter_init(&iter, live_closures);
-  while (g_hash_table_iter_next(&iter, &key, &value)){
-    printf("looping\n");
-    if(!key) continue;
-    live = ((scm_t) key)->val.scm_clos.live;
+  unsigned int length, i;
+  scm_t obj;
+  
+  GList* keys = g_hash_table_get_keys(live_closures);
+  while(keys){
+    obj = keys->data;
+    if(!obj) continue;
+    live = ((scm_t) obj)->val.scm_clos.live;
     if(!live){ // If unmarked, sweep
-      printf("freeing\n");
-      g_hash_table_remove(live_closures, key);
-      free_scm_t(key);
-      printf("done freeing\n");
+      g_hash_table_remove(live_closures, obj);
+      free_scm_t(obj);
     } else {
-      ((scm_t) key)->val.scm_clos.live = 0;
-      printf("unmarked\n");
+      ((scm_t) obj)->val.scm_clos.live = 0;
     }
+    keys = keys->next;
   }
-  printf("exiting sweep\n");
 }
 
 
@@ -199,6 +174,7 @@ void scm_init(lam_t f){
   stack_frames = 0;
 
   if(setjmp(env)){
+    printf("Jumped\n");
     stack_frames = 0;
     // Do GC
     mark(current_args[0]); // The root is the current closure which is always the first arg
@@ -298,6 +274,7 @@ scm_t scm_stop(){
 scm_t scm_select_clos(int ind, scm_t clos){
   if(clos->state != 3){
     printf("Attempted to select with non-closure\n");
+    printf("%d\n", clos->state);
     exit(1);
   }
   return clos->val.scm_clos.closed[ind];
