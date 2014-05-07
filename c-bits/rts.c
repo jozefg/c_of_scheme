@@ -93,6 +93,7 @@ scm_t mkLam(scm_t c, lam_t l){
 }
 
 void free_scm_t(scm_t t){
+  if(!t) return; // scm_top_clos strikes again!
   int i;
   switch(t->state){
   case 0:
@@ -106,6 +107,8 @@ void free_scm_t(scm_t t){
     free_scm_t(t->val.scm_cons.tail);
     break;
   case 3:
+    if(t->val.scm_clos.live != 0) break;
+    t->val.scm_clos.live = -1;
     for(i = 0; i < t->val.scm_clos.length; ++i){
       free_scm_t(t->val.scm_clos.closed[i]);
     }
@@ -144,40 +147,51 @@ scm_t display(scm_t s){
 void mark(scm_t root){
   int i;
   scm_t obj;
+  if(!root) return; // Watch out for top_clos
+
   if(root->state != 3){
-    printf("Gave nonclosure scm_t as root!\n");
-    exit(1);
+    return;
   }
   root->val.scm_clos.live = 1;
-  printf("Made it here\n");
 
   for(i = 0; i < root->val.scm_clos.length; ++i){
     obj = root->val.scm_clos.closed[i];
+    if(!obj) continue; // Watch out for top_clos again
     if(obj->state != 3 && obj->state != 4) continue; // Don't care about non-closures
     if(obj->state == 3){
-      if(!obj->val.scm_clos.live)
+      if(!obj->val.scm_clos.live){
         mark(obj); // DFS on closures
+      }
     } else {
-      if(!obj->val.scm_lam.clos->val.scm_clos.live)
+      if(!obj->val.scm_lam.clos->val.scm_clos.live){
         mark(obj->val.scm_lam.clos); // Use lambda's closures too since we need to keep
+      }
     }
   }
-  printf("Finished DFS\n");
 }
 
 void sweep(){
   GHashTableIter iter;
   void *key, *value;
   int live;
-  printf("Made it to sweep\n");
   g_hash_table_iter_init(&iter, live_closures);
   while (g_hash_table_iter_next(&iter, &key, &value)){
+    printf("looping\n");
+    if(!key) continue;
     live = ((scm_t) key)->val.scm_clos.live;
     if(!live){ // If unmarked, sweep
-      //free_scm_t(key);
+      printf("freeing\n");
+      g_hash_table_remove(live_closures, key);
+      free_scm_t(key);
+      printf("done freeing\n");
+    } else {
+      ((scm_t) key)->val.scm_clos.live = 0;
+      printf("unmarked\n");
     }
   }
+  printf("exiting sweep\n");
 }
+
 
 void scm_init(lam_t f){
   live_closures = g_hash_table_new(NULL, NULL); // Setup the hashtable, NULL and NULL 
