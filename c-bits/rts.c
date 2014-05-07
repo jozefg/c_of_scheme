@@ -149,27 +149,32 @@ void mark(scm_t root){
     exit(1);
   }
   root->val.scm_clos.live = 1;
+  printf("Made it here\n");
 
   for(i = 0; i < root->val.scm_clos.length; ++i){
     obj = root->val.scm_clos.closed[i];
-    if(obj->state != 3 && obj->state != 4) continue; // Don't care about not closures
+    if(obj->state != 3 && obj->state != 4) continue; // Don't care about non-closures
     if(obj->state == 3){
-      mark(obj); // DFS on closures
+      if(!obj->val.scm_clos.live)
+        mark(obj); // DFS on closures
     } else {
-      mark(obj->val.scm_lam.clos); // Use lambda's closures too
+      if(!obj->val.scm_lam.clos->val.scm_clos.live)
+        mark(obj->val.scm_lam.clos); // Use lambda's closures too since we need to keep
     }
   }
+  printf("Finished DFS\n");
 }
 
 void sweep(){
   GHashTableIter iter;
   void *key, *value;
   int live;
+  printf("Made it to sweep\n");
   g_hash_table_iter_init(&iter, live_closures);
   while (g_hash_table_iter_next(&iter, &key, &value)){
     live = ((scm_t) key)->val.scm_clos.live;
     if(!live){ // If unmarked, sweep
-      free_scm_t(key);
+      //free_scm_t(key);
     }
   }
 }
