@@ -45,10 +45,13 @@ void mark(scm_t t){
   case 2:
     mark(t->val.scm_cons.head);
     mark(t->val.scm_cons.tail);
+    break;
   case 3:
     mark_clos(t);
+    break;
   case 4:
     mark_clos(t->val.scm_lam.clos);
+    break;
   }
 }
       
