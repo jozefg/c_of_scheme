@@ -11,6 +11,7 @@
 static scm_t  current_fun;
 static scm_t* current_args;
 static int    current_args_len;
+static int    jump_num;
 static jmp_buf env;
 
 // Global counter of function calls
@@ -86,16 +87,22 @@ scm_t display(scm_t s){
 void scm_init(lam_t f){
   int i;
   stack_frames = 0;
+  jump_num     = 0;
   gc_init();
   
   if(setjmp(env)){
     stack_frames = 0;
-    for(i = 0; i < current_args_len; ++i){ // Do GC
-      mark(current_args[i]);
+    ++jump_num;
+
+    if(jump_num % 10 == 0){ // Do GC on 10th 20th.. jumps
+      for(i = 0; i < current_args_len; ++i){ // Do GC
+        mark(current_args[i]);
+      }
+      sweep();
     }
-    sweep();
     current_fun->val.scm_lam.fun(current_args); // Call next continuation
   }
+
   scm_apply(0, mkLam(scm_top_clos, f)); // Call main
 }
 

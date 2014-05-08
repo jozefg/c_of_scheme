@@ -5,4 +5,4 @@
         (sum (- n 1)
              (+ s 1)))))
 
-(define _ (sum 200 0))
+(define _ (sum 20000 0))
