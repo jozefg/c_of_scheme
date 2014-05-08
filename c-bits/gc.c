@@ -71,7 +71,7 @@ void sweep(){
     if(!live){ // If unmarked, sweep
       g_hash_table_remove(live_closures, obj);
       free_scm_t(obj);
-    } else {
+    } else { // Reset marked closures for next run
       ((scm_t) obj)->val.scm_clos.live = 0;
     }
     keys = keys->next;
