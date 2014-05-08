@@ -1,10 +1,8 @@
 #include "gc.h"
 #include <stdlib.h>
-#include <stdio.h>
-#include <glib.h>  // For hashtables
+#include <glib.h>  // For hashtables and queues
 
-// A global registery of allocated closures, needed
-// for GC
+// A global registery of allocated closures, needed for GC
 static GHashTable* live_closures;
 
 void gc_init(){
@@ -43,8 +41,7 @@ void mark_clos(scm_t root){
 void mark(scm_t t){
   if(!t) return;
   switch(t->state){
-  case 0:
-  case 1: break;
+  case 0: case 1: break;
   case 2:
     mark(t->val.scm_cons.head);
     mark(t->val.scm_cons.tail);
@@ -58,11 +55,9 @@ void mark(scm_t t){
   }
 }
       
-
 void free_scm_t(scm_t t){
   free(t); // Leaks subchildren
 }
-
 
 void sweep(){
   int live;
