@@ -1,4 +1,5 @@
 #include "gc.h"
+#include <stdlib.h>
 #include <glib.h>  // For hashtables
 
 // A global registery of allocated closures, needed
@@ -52,9 +53,14 @@ void mark(scm_t t){
 }
       
 
+void free_scm_t(scm_t t){
+  free(t);
+  t = NULL; // Leaks subchildren
+}
+
+
 void sweep(){
   int live;
-  unsigned int length, i;
   scm_t obj;
   
   GList* keys = g_hash_table_get_keys(live_closures);

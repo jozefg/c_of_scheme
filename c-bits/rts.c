@@ -60,12 +60,6 @@ scm_t mkLam(scm_t c, lam_t l){
   return scm_s;
 }
 
-void free_scm_t(scm_t t){
-  free(t);
-  t = NULL; // Leaks subchildren
-}
-
-
 int scm_eq_raw(scm_t l, scm_t r){
   if(l->state != r->state)
     return 0;
