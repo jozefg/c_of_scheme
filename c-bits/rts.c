@@ -138,7 +138,7 @@ void mark(scm_t root){
         mark(obj); // DFS on closures
       }
     } else {
-      if(!obj->val.scm_lam.clos->val.scm_clos.live){
+      if(obj->val.scm_lam.clos && !obj->val.scm_lam.clos->val.scm_clos.live){
         mark(obj->val.scm_lam.clos); // Use lambda's closures too since we need to keep
       }
     }
