@@ -45,8 +45,9 @@ compileC code = do
   let cFile = "out.c"
       cBits = hd ++ "/.scheme2c/"
       rts   = cBits ++ "rts.c"
+      gc    = cBits ++ "gc.c"
   writeFile cFile code
-  output <- system $ "gcc -O3 -I" ++ unwords [cBits, cFile, rts] ++ "  `pkg-config --cflags --libs glib-2.0`"
+  output <- system $ "gcc -O3 -I" ++ unwords [cBits, cFile, rts, gc] ++ "  `pkg-config --cflags --libs glib-2.0`"
   print output
 
 main :: IO ()

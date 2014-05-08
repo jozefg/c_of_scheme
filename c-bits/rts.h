@@ -1,5 +1,5 @@
-#ifdef SCHEME_2_C_RTS
-#define SCHEME_2_C_RTS
+#ifndef RTS
+#define RTS
 
 /* The interface to the RTS system of scheme2c.
    All operations except test may exit the program
@@ -43,7 +43,6 @@ struct scheme_val {
    All of these should allocate memory and will eventually
    require GC-ing
 */
-
 scm_t mkInt(int i);
 scm_t mkSym(char* s);
 scm_t mkClos(int i, ...);
