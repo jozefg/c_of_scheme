@@ -1,5 +1,6 @@
 #include "gc.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <glib.h>  // For hashtables
 
 // A global registery of allocated closures, needed
@@ -17,24 +18,26 @@ void register_closure(scm_t clos){
 void mark_clos(scm_t root){
   int i;
   scm_t obj;
+  GQueue* queue = g_queue_new();
   if(!root || root->state != 3) return; // Watch out for top_clos and friends
 
-  root->val.scm_clos.live = 1;
+  root->val.scm_clos.live = 1; // Setup the queue with root
+  g_queue_push_head(queue, root);
 
-  for(i = 0; i < root->val.scm_clos.length; ++i){
-    obj = root->val.scm_clos.closed[i];
-    if(!obj) continue; // Watch out for top_clos again
-    if(obj->state != 3 && obj->state != 4) continue; // Don't care about non-closures
-    if(obj->state == 3){
-      if(!obj->val.scm_clos.live){
-        mark_clos(obj); // DFS on closures
-      }
-    } else {
-      if(obj->val.scm_lam.clos && !obj->val.scm_lam.clos->val.scm_clos.live){
-        mark_clos(obj->val.scm_lam.clos); // Use lambda's closures too since we need to keep
+  while(g_queue_get_length(queue) && (root = g_queue_pop_head(queue))){
+    for(i = 0; i < root->val.scm_clos.length; ++i){ // For each object in the closure
+      obj = root->val.scm_clos.closed[i];
+      if(!obj || (obj->state != 3 && obj->state != 4)) continue; // Don't care about non-closures
+
+      if(obj->state == 4) obj = obj->val.scm_lam.clos; // Unwrap a lam clos since we may need to call it in future
+
+      if(obj && !obj->val.scm_clos.live){ // Extra obj check in case lambda is boxed with bad closure
+        obj->val.scm_clos.live = 1;
+        g_queue_push_head(queue, obj); // DFS on closures
       }
     }
   }
+  g_queue_free(queue);
 }
 
 void mark(scm_t t){

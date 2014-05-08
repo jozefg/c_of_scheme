@@ -94,7 +94,9 @@ void scm_init(lam_t f){
     stack_frames = 0;
     ++jump_num;
 
-    if(jump_num % 100 == 0){ // Do GC on 100th 200th.. jumps
+    if(jump_num == 1000){ // Do GC on 100th 200th.. jumps
+      jump_num = 0;
+      printf("GCing\n");
       for(i = 0; i < current_args_len; ++i){ // Do GC
         mark(current_args[i]);
       }
