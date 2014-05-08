@@ -54,8 +54,7 @@ void mark(scm_t t){
       
 
 void free_scm_t(scm_t t){
-  free(t);
-  t = NULL; // Leaks subchildren
+  free(t); // Leaks subchildren
 }
 
 
