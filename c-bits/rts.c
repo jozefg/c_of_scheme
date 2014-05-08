@@ -10,6 +10,7 @@
 // continuations during longjmp's
 static scm_t  current_fun;
 static scm_t* current_args;
+static int    current_args_len;
 static jmp_buf env;
 
 // Global counter of function calls
@@ -124,11 +125,8 @@ scm_t display(scm_t s){
 void mark(scm_t root){
   int i;
   scm_t obj;
-  if(!root) return; // Watch out for top_clos
+  if(!root || root->state != 3) return; // Watch out for top_clos and friends
 
-  if(root->state != 3){
-    return;
-  }
   root->val.scm_clos.live = 1;
 
   for(i = 0; i < root->val.scm_clos.length; ++i){
@@ -146,6 +144,22 @@ void mark(scm_t root){
     }
   }
 }
+
+void mark_all(scm_t t){
+  if(!t) return;
+  switch(t->state){
+  case 0:
+  case 1: break;
+  case 2:
+    mark_all(t->val.scm_cons.head);
+    mark_all(t->val.scm_cons.tail);
+  case 3:
+    mark(t);
+  case 4:
+    mark(t->val.scm_lam.clos);
+  }
+}
+      
 
 void sweep(){
   int live;
@@ -169,15 +183,17 @@ void sweep(){
 
 
 void scm_init(lam_t f){
+  int i;
   live_closures = g_hash_table_new(NULL, NULL); // Setup the hashtable, NULL and NULL 
                                                 // directs glib to use simple hash & eq functions
   stack_frames = 0;
 
   if(setjmp(env)){
-    printf("Jumped\n");
     stack_frames = 0;
     // Do GC
-    mark(current_args[0]); // The root is the current closure which is always the first arg
+    for(i = 0; i < current_args_len; ++i){
+      mark_all(current_args[i]);
+    }
     sweep();
     // Call next continuation
     current_fun->val.scm_lam.fun(current_args);
@@ -201,8 +217,9 @@ void scm_apply(int i, scm_t f, ...) {
 
     if(stack_frames >= 100){
       // Transfer continuation up
-      current_fun     = f;
-      current_args    = arg_list;
+      current_fun      = f;
+      current_args     = arg_list;
+      current_args_len = i + 1;
       longjmp(env, 1);
     }
     ++stack_frames;

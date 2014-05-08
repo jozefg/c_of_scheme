@@ -77,7 +77,7 @@ closeVar v c = do
              return . Prim $ SelectClos path c
     else if globalVar then
            return $ Var v
-         else return $ Prim MkLam `App` [Prim $ TopClos , Var v]
+         else return $ Prim MkLam `App` [Prim TopClos, Var v]
 
 -- | Main closConvert function, puts lifted lambdas into a writer monad
 -- and explicitly converts all other expressions.
