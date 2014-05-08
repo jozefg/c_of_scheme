@@ -1,5 +1,5 @@
 name:                scheme2c
-version:             0.2.0.0
+version:             0.3.0.0
 synopsis:            Compiler for Scheme to C
 license:             MIT
 license-file:        LICENSE
