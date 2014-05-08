@@ -10,7 +10,8 @@ Currently compiles a subset supporting
  - Mutation (which works with closures)
 
 The runtime system currently is the simplest possible implementation.
-This will support garbage collection Real Soon Now.
+In particular, the current implementation of GC is rather leaky now,
+this will improve over time.
 
 
 ## What's in scheme2c?
