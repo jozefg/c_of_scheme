@@ -1,4 +1,3 @@
-#include "rts.h"
 #include "gc.h"
 #include <glib.h>  // For hashtables
 

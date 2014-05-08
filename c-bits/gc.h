@@ -1,5 +1,6 @@
 #ifndef GC
 #define GC
+#include "types.h"
 void gc_init();
 void mark(scm_t);
 void sweep();
