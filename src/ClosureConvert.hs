@@ -17,7 +17,9 @@ import Control.Monad.State
 -- and look up each explicitly as needed.
 --
 -- At the beginning of each lambda, define a new value to be the new closure
--- and pass it to all functions marked as needing it.
+-- and pass it to all functions marked as needing it. Add one step to the beginning
+-- of each lambda, NewClos that will take the previous closure as the first argument,
+-- building a "tree" out of closures.
 
 type ClosPath = M.Map Var [Int]
 type GlobalVars  = S.Set Var
