@@ -1,7 +1,7 @@
 build:
-	cp c-bits/* ${HOME}/.scheme2c
+	cp c-bits/* ${HOME}/.c_of_scheme
 	cabal build
-	cp dist/build/scheme2c/scheme2c .
+	cp dist/build/c_of_scheme/c_of_scheme .
 
 test:
 

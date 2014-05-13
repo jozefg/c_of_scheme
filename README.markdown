@@ -14,7 +14,7 @@ In particular, the current implementation of GC is rather leaky now,
 this will improve over time.
 
 
-## What's in scheme2c?
+## What's in c_of_scheme?
 The full listing of primitive operations,
 
  - `+ - * /` with the obvious meanings
@@ -28,13 +28,13 @@ All programs must be a series of `define`'s, to execute actual values, use
         (display (really-cool-function 0)))
 
 
-## How do I run scheme2c?
+## How do I run c_of_scheme?
 
-To use scheme2c, simply run `make build` which will stick the rts in `~/.scheme2c` and give you
-an excutable, `scheme2c` to run on a scheme file producing `a.out`.
+To use c_of_scheme, simply run `make build` which will stick the rts in `~/.c_of_scheme` and give you
+an excutable, `c_of_scheme` to run on a scheme file producing `a.out`.
 
 ## Can I Contribute?
-Absolutely! `scheme2c` is so small to make it a nice platform for hacking on a simple compiler.
+Absolutely! `c_of_scheme` is so small to make it a nice platform for hacking on a simple compiler.
 
 If you're interested in contributing anything, please email me at danny DOT gratzer AT gmail.com.
 Some things that could be fun to work on include

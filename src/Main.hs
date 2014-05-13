@@ -38,12 +38,12 @@ compile =  runGen
         intoFail (Right r) = Right r
 
 -- | A hacky way to automatically compile the C
--- code using GCC, assumes the RTS is in ~/.scheme2c/
+-- code using GCC, assumes the RTS is in ~/.c_of_scheme/
 compileC :: String -> IO ()
 compileC code = do
   UserEntry{homeDirectory = hd} <- getRealUserID >>= getUserEntryForID
   let cFile = "out.c"
-      cBits = hd ++ "/.scheme2c/"
+      cBits = hd ++ "/.c_of_scheme/"
       rts   = cBits ++ "rts.c"
       gc    = cBits ++ "gc.c"
   writeFile cFile code

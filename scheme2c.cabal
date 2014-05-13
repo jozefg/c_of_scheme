@@ -1,6 +1,6 @@
-name:                scheme2c
+name:                c_of_scheme
 version:             0.3.0.0
-synopsis:            Compiler for Scheme to C
+synopsis:            Tiny Compiler for Scheme to C
 license:             MIT
 license-file:        LICENSE
 author:              Danny Gratzer
@@ -11,7 +11,7 @@ category:            Compilers/Interpreters
 
 build-type:          Simple
 cabal-version:       >=1.10
-executable scheme2c
+executable c_of_scheme
   main-is:             Main.hs
   other-modules:       Gen, Error, AST, ClosureConvert, CodeGen, RewriteToplevels
   build-depends:       base >=4.6 && <5,

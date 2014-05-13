@@ -1,7 +1,7 @@
 #ifndef RTS
 #define RTS
 #include "types.h"
-/* The interface to the RTS system of scheme2c.
+/* The interface to the RTS system of c_of_scheme.
    All operations except test may exit the program
    with a type error or similar.
 */
