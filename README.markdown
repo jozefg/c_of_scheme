@@ -11,7 +11,8 @@ Currently compiles a subset supporting
 
 The runtime system currently is the simplest possible implementation.
 In particular, the current implementation of GC is rather leaky now,
-this will improve over time.
+as it only collects a certain subset of garbage for simplicity.
+This will improve over time.
 
 
 ## What's in c_of_scheme?
@@ -27,6 +28,7 @@ All programs must be a series of `define`'s, to execute actual values, use
      (define _
         (display (really-cool-function 0)))
 
+The same as you would do in SML.
 
 ## How do I run c_of_scheme?
 
