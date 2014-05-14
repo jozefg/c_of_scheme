@@ -1,5 +1,6 @@
 #include "gc.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <glib.h>  // For hashtables and queues
 
 // A global registery of allocated closures, needed for GC
@@ -27,7 +28,7 @@ void mark_clos(scm_t root){
       obj = root->val.scm_clos.closed[i];
       if(!obj) continue; // top_clos
       if (obj->state != 3 && obj->state != 4){
-        //obj->live = 1;
+        obj->live = 1;
         continue; // Don't care about non-closures
       }
       // Unwrap a lam clos since we may need to call it in future
@@ -65,7 +66,7 @@ void free_scm_t(scm_t t){
 
 void sweep(){
   scm_t obj;
-  
+  printf("Sweeping\n");
   GList* keys = g_hash_table_get_keys(live_closures);
   while(keys){
     obj = keys->data;
