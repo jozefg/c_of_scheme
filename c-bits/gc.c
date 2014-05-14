@@ -27,7 +27,7 @@ void mark_clos(scm_t root){
       obj = root->val.scm_clos.closed[i];
       if(!obj) continue; // top_clos
       if (obj->state != 3 && obj->state != 4){
-        obj->live = 1;
+        //obj->live = 1;
         continue; // Don't care about non-closures
       }
       // Unwrap a lam clos since we may need to call it in future
@@ -45,7 +45,7 @@ void mark_clos(scm_t root){
 void mark(scm_t t){
   if(!t) return;
   switch(t->state){
-  case 0: case 1: break;
+  case 0: case 1: t->live=1; break;
   case 2:
     mark(t->val.scm_cons.head);
     mark(t->val.scm_cons.tail);
