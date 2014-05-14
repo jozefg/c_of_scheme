@@ -24,14 +24,14 @@ scm_t scm_malloc(){
 
 scm_t mkInt(int i){
   scm_t scm_i = scm_malloc();
-  struct scheme_val s = {.state = 0, {.scm_int = i}};
+  struct scheme_val s = {.live = 0, .state = 0, {.scm_int = i}};
   memcpy(scm_i, &s, sizeof *scm_i);
   return scm_i;
 }
 
 scm_t mkSym(char *c){
   scm_t scm_s = scm_malloc();
-  struct scheme_val s = {.state = 1, {.scm_sym = c}};
+  struct scheme_val s = {.live = 0, .state = 1, {.scm_sym = c}};
   memcpy(scm_s, &s, sizeof *scm_s);
   return scm_s;
 }
@@ -41,7 +41,7 @@ scm_t mkClos(int i, ...){
   int x;
   scm_t result = scm_malloc();
   scm_t *closed = malloc(sizeof(scm_t) * i);
-  struct scheme_val s = {.state = 3, {.scm_clos = {.closed = NULL, .length = i, .live = 0}}};
+  struct scheme_val s = {.live = 0, .state = 3, {.scm_clos = {.closed = NULL, .length = i}}};
 
   va_start(ap, i);
   for(x = 0; x < i; ++x){
@@ -56,7 +56,7 @@ scm_t mkClos(int i, ...){
 
 scm_t mkLam(scm_t c, lam_t l){
   scm_t scm_s = scm_malloc();
-  struct scheme_val s = {.state = 4, {.scm_lam = {c, l}}};
+  struct scheme_val s = {.live = 0, .state = 4, {.scm_lam = {c, l}}};
   memcpy(scm_s, &s, sizeof *scm_s);
   return scm_s;
 }
@@ -166,7 +166,7 @@ scm_t scm_div(scm_t l, scm_t r){
 
 scm_t scm_cons(scm_t h, scm_t t){
   scm_t scm_s = scm_malloc();
-  struct scheme_val s = {.state = 2,
+  struct scheme_val s = {.live = 0, .state = 2,
                          {.scm_cons = {.head = h, .tail = t}}};
   memcpy(scm_s, &s, sizeof *scm_s);
   return scm_s;

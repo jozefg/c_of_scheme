@@ -8,7 +8,6 @@ struct scheme_val;
 typedef struct clos {
   struct scheme_val** closed;
   int length;
-  int live; // Used by mark-and-sweep GC
 } clos_t;
 
 typedef struct {
@@ -22,7 +21,8 @@ typedef struct {
 } closed_lam_t;
 
 struct scheme_val {
-  int state;
+  int live;
+  int state; // Used by mark-and-sweep GC
   union {
     int    scm_int;
     char*  scm_sym;
