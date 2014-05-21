@@ -10,10 +10,7 @@ data Var = SVar String | Gen Integer
 
 data SLit = SInt Int
           | SSym String
-          deriving(Eq)
-instance Show SLit where
-  show (SInt i) = show i
-  show (SSym s) = '\'' : s
+          deriving(Eq, Show)
 
 data UserPrim = Plus | Mult | Sub | Div    | Display
               | Cons | Car  | Cdr | Eq     | Exit
