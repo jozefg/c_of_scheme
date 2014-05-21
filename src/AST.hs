@@ -6,10 +6,7 @@ import Control.Monad.State
 import Control.Error
 
 data Var = SVar String | Gen Integer
-         deriving(Eq, Ord)
-instance Show Var where
-  show (SVar v) = v
-  show (Gen  i) = "%gen_"++show i
+         deriving(Eq, Ord, Show)
 
 data SLit = SInt Int
           | SSym String
@@ -36,28 +33,12 @@ data SExp p = Lit  SLit
             | App (SExp p) [SExp p]
             | Var Var
             | Prim p
-            deriving(Eq)
-instance Show p => Show (SExp p) where
-  show (Lit l) = show l
-  show (Lam vars exps) =
-    "(lambda ("++ unwords (map show vars) ++ ")" ++
-    '\n' : unwords (map show exps) ++ ")"
-  show (Set v e) = "( set! " ++ show v ++ " " ++ show e ++ ")"
-  show (If test true false) =
-    "(if " ++ show test ++ "\n" ++ show true ++ "\n" ++ show false ++ ")"
-  show (App f args) = "(" ++ show f ++ " " ++ unwords (map show args) ++ ")"
-  show (Var v) = show v
-  show (Prim p) = show p
-  
+            deriving(Show, Eq)
+
 data SDec p = Def Var (SExp p)
             | Init Var
             | Fun Var [Var] [SExp p]
-            deriving(Eq)
-
-instance Show p => Show (SDec p) where
-  show (Def v e) = "(define "++show v++"\n  "++show e++")"
-  show (Init v)  = "(predec "++show v++")"
-  show (Fun v vars exps) = show $ Def v (Lam vars exps)
+            deriving(Eq, Show)
 
 type Compiler = StateT Var (EitherT Failure Gen)
 
