@@ -1,5 +1,5 @@
 name:                c-of-scheme
-version:             0.3.0.0
+version:             1.0.0.0
 synopsis:            Tiny Compiler for Scheme to C
 license:             MIT
 license-file:        LICENSE
