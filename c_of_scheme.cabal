@@ -21,7 +21,8 @@ executable c_of_scheme
                        parsec >= 3.0,
                        process > 1.0,
                        unix,
-                       errors >= 1.3
+                       errors >= 1.3,
+                       recursion-schemes
   hs-source-dirs:      src
   ghc-options:         -Wall -fno-warn-name-shadowing
   default-language:    Haskell2010
