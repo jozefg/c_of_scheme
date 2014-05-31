@@ -41,8 +41,11 @@ effectFree = cata pureish
         pureish LitF{} = True
         pureish _      = False
 
+shouldInline :: Var -> SExp p -> SExp p -> Bool
+shouldInline var arg body = mutated var body && size arg < 10 && effectFree arg
+
+
 inline :: SExp p -> SExp p
-inline = cata folder
-  where folder (AppF (Lam [v] [e]) [a]) -- Simple inlining, inline only small pure arguments
-          | mutated v e && size a < 10 && effectFree a = substitute v a e 
+inline = cata folder -- Simple inlining, inline only small pure arguments
+  where folder (AppF (Lam [v] [e]) [a]) | shouldInline v a e = substitute v a e 
         folder e = embed e
