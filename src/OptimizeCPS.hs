@@ -4,9 +4,9 @@ import Data.Functor.Foldable
 
 optimize :: [SDec CPSPrim] -> Compiler [SDec CPSPrim]
 optimize = mapM optimizer
-  where optimizer (Def n e) = Def n `fmap` optimizeExp e
+  where optimizer (Def n e)     = Def n `fmap` optimizeExp e
         optimizer (Fun v vs es) = Fun v vs `fmap` mapM optimizeExp es
-        optimizer (Init n)  = return $ Init n
+        optimizer (Init n)      = return $ Init n
 
 
 optimizeExp :: SExp CPSPrim -> Compiler (SExp CPSPrim)
@@ -49,7 +49,7 @@ effectFree = cata pureish
         pureish _      = False
 
 shouldInline :: Var -> SExp p -> SExp p -> Bool
-shouldInline var arg body = mutated var body && size arg < 10 && effectFree arg
+shouldInline var arg body = not (mutated var body) && size arg < 10 && effectFree arg
 
 
 inline :: SExp p -> SExp p
