@@ -8,7 +8,7 @@ import RewriteToplevels
 import ClosureConvert
 import CodeGen
 import Parser
-import Language.C.DSL (pretty)
+import Language.C.DSL (pretty, CExtDecl)
 
 import Text.Parsec (ParseError)
 
@@ -21,13 +21,16 @@ import System.Environment
 import System.Posix.User
 import System.Cmd
 
+compilerPipeline :: Either Failure [SDec UserPrim] -> Compiler [CExtDecl]
+compilerPipeline = codegen <=< closConvert <=< optimize <=< cpsify <=< makeMain <=< (lift . hoistEither)
+
 -- | The big compilation function, chains together each section of the
 -- compiler and returns either a failure or the C code as a string.
 compile :: Either ParseError [SDec UserPrim] -> Either Failure String
 compile =  runGen
           . eitherT (return . Left) success
           . flip evalStateT (SVar "")
-          . (codegen <=< closConvert <=< optimize <=< cpsify <=< makeMain <=< (lift . hoistEither))
+          . compilerPipeline
           . fmap (++prims)
           . intoFail
   where success = return
