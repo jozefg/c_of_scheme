@@ -2,8 +2,15 @@ module OptimizeCPS (optimize) where
 import AST
 import Data.Functor.Foldable
 
-optimize :: Compiler (SExp CPSPrim) -> Compiler (SExp CPSPrim)
-optimize = fmap inline
+optimize :: [SDec CPSPrim] -> Compiler [SDec CPSPrim]
+optimize = mapM optimizer
+  where optimizer (Def n e) = Def n `fmap` optimizeExp e
+        optimizer (Fun v vs es) = Fun v vs `fmap` mapM optimizeExp es
+        optimizer (Init n)  = return $ Init n
+
+
+optimizeExp :: SExp CPSPrim -> Compiler (SExp CPSPrim)
+optimizeExp = return . inline
 
 -- | The size of term, useful for telling whether inlining/optimizing
 -- actually did something useful

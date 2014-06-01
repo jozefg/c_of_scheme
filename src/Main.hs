@@ -1,12 +1,13 @@
 module Main where
+import Gen
+import Error
 import AST
 import CPS
+import OptimizeCPS
 import RewriteToplevels
 import ClosureConvert
 import CodeGen
 import Parser
-import Gen
-import Error
 import Language.C.DSL (pretty)
 
 import Text.Parsec (ParseError)
@@ -26,7 +27,7 @@ compile :: Either ParseError [SDec UserPrim] -> Either Failure String
 compile =  runGen
           . eitherT (return . Left) success
           . flip evalStateT (SVar "")
-          . (codegen <=< closConvert <=< cpsify <=< makeMain <=< (lift . hoistEither))
+          . (codegen <=< closConvert <=< optimize <=< cpsify <=< makeMain <=< (lift . hoistEither))
           . fmap (++prims)
           . intoFail
   where success = return
