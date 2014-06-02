@@ -2,6 +2,7 @@ module OptimizeCPS (optimize) where
 import AST
 import Data.Functor.Foldable
 
+
 optimize :: [SDec CPSPrim] -> Compiler [SDec CPSPrim]
 optimize = mapM optimizer
   where optimizer (Def n e)     = Def n `fmap` optimizeExp e
@@ -42,17 +43,24 @@ substitute var exp = para folder
         folder (SetF v e)             = Set v (snd e) -- We'll never inline a settable variable
         folder (PrimF p)              = Prim p
 
-effectFree :: SExp p -> Bool
+effectFree :: SExp CPSPrim -> Bool
 effectFree = cata pureish
-  where pureish VarF{} = True
-        pureish LitF{} = True
-        pureish _      = False
+  where pureish VarF{}        = True
+        pureish LitF{}        = True
+        pureish (PrimF p)     = pureOp p
+        pureish (IfF i t e)   = i && t && e
+        pureish (AppF f args) = and (f : args)
+        pureish _             = False
+        pureOp (UserPrim Display) = False
+        pureOp (UserPrim Exit)    = False
+        pureOp Halt               = False
+        pureOp _                  = True
 
-shouldInline :: Var -> SExp p -> SExp p -> Bool
+shouldInline :: Var -> SExp CPSPrim -> SExp CPSPrim -> Bool
 shouldInline var arg body = not (mutated var body) && size arg < 10 && effectFree arg
 
 
-inline :: SExp p -> SExp p
+inline :: SExp CPSPrim -> SExp CPSPrim
 inline = cata folder -- Simple inlining, inline only small pure arguments
   where folder (AppF (Lam [v] [e]) [a]) | shouldInline v a e = substitute v a e 
         folder e = embed e
