@@ -21,8 +21,8 @@ import System.Environment
 import System.Posix.User
 import System.Cmd
 
-compilerPipeline :: Either Failure [SDec UserPrim] -> Compiler [CExtDecl]
-compilerPipeline = codegen <=< closConvert <=< optimize <=< cpsify <=< makeMain <=< (lift . hoistEither)
+compilerPipeline :: [SDec UserPrim] -> Compiler [CExtDecl]
+compilerPipeline = codegen <=< closConvert <=< optimize <=< cpsify <=< makeMain
 
 -- | The big compilation function, chains together each section of the
 -- compiler and returns either a failure or the C code as a string.
@@ -30,7 +30,7 @@ compile :: Either ParseError [SDec UserPrim] -> Either Failure String
 compile =  runGen
           . eitherT (return . Left) success
           . flip evalStateT (SVar "")
-          . compilerPipeline
+          . (compilerPipeline <=< (lift . hoistEither))
           . fmap (++prims)
           . intoFail
   where success = return
