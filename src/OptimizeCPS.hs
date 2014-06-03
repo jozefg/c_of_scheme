@@ -1,3 +1,4 @@
+{-# LANGUAGE PatternGuards #-}
 module OptimizeCPS (optimize) where
 import AST
 import Data.Functor.Foldable
@@ -11,7 +12,7 @@ optimize = mapM optimizer
 
 
 optimizeExp :: SExp CPSPrim -> Compiler (SExp CPSPrim)
-optimizeExp = return . inline
+optimizeExp = return . constFold . inline
 
 -- | The size of term, useful for telling whether inlining/optimizing
 -- actually did something useful
@@ -63,4 +64,18 @@ shouldInline var arg body = not (mutated var body) && size arg < 10 && effectFre
 inline :: SExp CPSPrim -> SExp CPSPrim
 inline = cata folder -- Simple inlining, inline only small pure arguments
   where folder (AppF (Lam [v] [e]) [a]) | shouldInline v a e = substitute v a e 
+        folder e = embed e
+
+
+mathOp :: UserPrim -> Maybe (Int -> Int -> Int)
+mathOp Plus = Just (+)
+mathOp Sub  = Just (-)
+mathOp Mult = Just (*)
+mathOp Div  = Just div
+mathOp _    = Nothing
+
+constFold :: SExp CPSPrim -> SExp CPSPrim
+constFold = cata folder
+  where folder (AppF (Prim (UserPrim p)) [Lit (SInt a), Lit (SInt b)])
+          | Just op <- mathOp p = Lit . SInt $ a `op` b
         folder e = embed e
