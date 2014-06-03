@@ -3,7 +3,6 @@ module OptimizeCPS (optimize) where
 import AST
 import Data.Functor.Foldable
 
-
 optimize :: [SDec CPSPrim] -> Compiler [SDec CPSPrim]
 optimize = mapM optimizer
   where optimizer (Def n e)     = Def n `fmap` optimizeExp e
@@ -58,7 +57,7 @@ effectFree = cata pureish
         pureOp _                  = True
 
 shouldInline :: Var -> SExp CPSPrim -> SExp CPSPrim -> Bool
-shouldInline var arg body = not (mutated var body) && size arg < 10 && effectFree arg
+shouldInline var arg body = not (mutated var body) && size arg < 30 && effectFree arg
 
 
 inline :: SExp CPSPrim -> SExp CPSPrim
@@ -67,15 +66,18 @@ inline = cata folder -- Simple inlining, inline only small pure arguments
         folder e = embed e
 
 
-mathOp :: UserPrim -> Maybe (Int -> Int -> Int)
-mathOp Plus = Just (+)
-mathOp Sub  = Just (-)
-mathOp Mult = Just (*)
-mathOp Div  = Just div
-mathOp _    = Nothing
+-- | The Haskell equivalent of a math primop
+-- Currently horrible because we generate primops
+-- in a stupid way.
+mathOp :: Var -> Maybe (Int -> Int -> Int)
+mathOp (SVar "+") = Just (+)
+mathOp (SVar "-") = Just (-)
+mathOp (SVar "*") = Just (*)
+mathOp (SVar "/") = Just div
+mathOp _          = Nothing
 
 constFold :: SExp CPSPrim -> SExp CPSPrim
 constFold = cata folder
-  where folder (AppF (Prim (UserPrim p)) [Lit (SInt a), Lit (SInt b)])
-          | Just op <- mathOp p = Lit . SInt $ a `op` b
+  where folder (AppF (Var v) [cont, Lit (SInt a), Lit (SInt b)])
+          | Just op <- mathOp v = App cont [Lit . SInt $ a `op` b]
         folder e = embed e
