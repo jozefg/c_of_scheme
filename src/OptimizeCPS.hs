@@ -11,7 +11,7 @@ optimize = mapM optimizer
 
 
 optimizeExp :: SExp CPSPrim -> Compiler (SExp CPSPrim)
-optimizeExp = return . constFold . inline
+optimizeExp = return . inline
 
 -- | The size of term, useful for telling whether inlining/optimizing
 -- actually did something useful
@@ -63,21 +63,4 @@ shouldInline var arg body = not (mutated var body) && size arg < 30 && effectFre
 inline :: SExp CPSPrim -> SExp CPSPrim
 inline = cata folder -- Simple inlining, inline only small pure arguments
   where folder (AppF (Lam [v] [e]) [a]) | shouldInline v a e = substitute v a e 
-        folder e = embed e
-
-
--- | The Haskell equivalent of a math primop
--- Currently horrible because we generate primops
--- in a stupid way.
-mathOp :: Var -> Maybe (Int -> Int -> Int)
-mathOp (SVar "+") = Just (+)
-mathOp (SVar "-") = Just (-)
-mathOp (SVar "*") = Just (*)
-mathOp (SVar "/") = Just div
-mathOp _          = Nothing
-
-constFold :: SExp CPSPrim -> SExp CPSPrim
-constFold = cata folder
-  where folder (AppF (Var v) [cont, Lit (SInt a), Lit (SInt b)])
-          | Just op <- mathOp v = App cont [Lit . SInt $ a `op` b]
         folder e = embed e
