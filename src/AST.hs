@@ -1,11 +1,11 @@
 {-# LANGUAGE DeriveFunctor, TypeFamilies #-}
 module AST where
-import Utils.Gen
-import Utils.Error
 import Control.Applicative
 import Control.Monad.State
 import Control.Error
 import Data.Functor.Foldable
+import Utils.Gen
+import Utils.Error
 
 data Var = SVar String | Gen Integer
          deriving(Eq, Ord, Show)
