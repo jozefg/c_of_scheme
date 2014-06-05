@@ -1,8 +1,6 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances, DeriveFunctor      #-}
-
--- Explicitly turn of Safe so we can use 
-module Gen where
+module Utils.Gen where
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.Monad.Identity

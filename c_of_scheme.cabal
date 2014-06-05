@@ -13,7 +13,14 @@ build-type:          Simple
 cabal-version:       >=1.10
 executable c_of_scheme
   main-is:             Main.hs
-  other-modules:       Gen, Error, AST, ClosureConvert, CodeGen, RewriteToplevels
+  other-modules:       Utils.Gen,
+                       Utils.Error,
+                       AST,
+                       CPS,
+                       OptimizeCPS,
+                       ClosureConvert,
+                       CodeGen,
+                       RewriteToplevels
   build-depends:       base >=4.6 && <5,
                        mtl>= 2.0,
                        containers,

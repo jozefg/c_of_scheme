@@ -1,13 +1,14 @@
 module ClosureConvert (closConvert) where
 import AST
-import Gen
-import Error
 import qualified Data.Set as S
 import qualified Data.Map as M
 import Control.Applicative
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Control.Monad.State
+import Utils.Gen
+import Utils.Error
+
 -- Procedure for closure conversion:
 --        
 -- Lift each lambda to it's own toplevel function accepting an

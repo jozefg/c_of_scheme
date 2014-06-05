@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards, FlexibleContexts #-}
-module Error where
+module Utils.Error where
 import Text.Printf
 import Control.Monad.Error
 

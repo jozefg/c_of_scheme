@@ -1,8 +1,8 @@
 module CPS (cpsify) where
 import Control.Applicative
-import Gen
 import AST
-import Error
+import Utils.Gen
+import Utils.Error
 
 -- | The driver for CPS conversion, leaves @Init@'s alone
 -- and fails when given @Def@s. Otherwise it converts

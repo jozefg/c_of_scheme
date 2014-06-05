@@ -1,11 +1,10 @@
 module RewriteToplevels (makeMain) where
-
+import AST
 import Control.Monad.Writer
 import Control.Monad.State
-import Gen
-import Error
-import AST
 import Control.Applicative
+import Utils.Gen
+import Utils.Error
 
 type Rewrite = WriterT [(Var, SExp UserPrim)] Compiler
 

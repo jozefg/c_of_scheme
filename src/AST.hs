@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveFunctor, TypeFamilies #-}
 module AST where
-import Gen
-import Error
+import Utils.Gen
+import Utils.Error
 import Control.Applicative
 import Control.Monad.State
 import Control.Error

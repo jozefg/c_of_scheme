@@ -1,22 +1,19 @@
 module Main where
-import Gen
-import Error
+import Utils.Gen
+import Utils.Error
 import AST
+import Parser
+import RewriteToplevels
 import CPS
 import OptimizeCPS
-import RewriteToplevels
 import ClosureConvert
 import CodeGen
-import Parser
 import Language.C.DSL (pretty, CExtDecl)
-
 import Text.Parsec (ParseError)
-
 import Control.Monad
 import Control.Monad.Trans
 import Control.Monad.State
 import Control.Error
-
 import System.Environment
 import System.Posix.User
 import System.Cmd
