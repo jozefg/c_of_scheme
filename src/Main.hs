@@ -1,4 +1,13 @@
 module Main where
+import Control.Monad
+import Control.Monad.Trans
+import Control.Monad.State
+import Control.Error
+import System.Environment
+import System.Posix.User
+import System.Cmd
+import Language.C.DSL (pretty, CExtDecl)
+import Text.Parsec (ParseError)
 import Utils.Gen
 import Utils.Error
 import AST
@@ -8,15 +17,6 @@ import CPS
 import OptimizeCPS
 import ClosureConvert
 import CodeGen
-import Language.C.DSL (pretty, CExtDecl)
-import Text.Parsec (ParseError)
-import Control.Monad
-import Control.Monad.Trans
-import Control.Monad.State
-import Control.Error
-import System.Environment
-import System.Posix.User
-import System.Cmd
 
 compilerPipeline :: [SDec UserPrim] -> Compiler [CExtDecl]
 compilerPipeline = codegen <=< closConvert <=< optimize <=< cpsify <=< makeMain
