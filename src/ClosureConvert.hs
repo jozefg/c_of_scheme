@@ -1,11 +1,11 @@
 module ClosureConvert (closConvert) where
-import AST
 import qualified Data.Set as S
 import qualified Data.Map as M
 import Control.Applicative
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Control.Monad.State
+import AST
 import Utils.Gen
 import Utils.Error
 
