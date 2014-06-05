@@ -1,8 +1,8 @@
 module RewriteToplevels (makeMain) where
-import AST
 import Control.Monad.Writer
 import Control.Monad.State
 import Control.Applicative
+import AST
 import Utils.Gen
 import Utils.Error
 

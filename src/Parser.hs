@@ -1,7 +1,7 @@
 module Parser where
+import Control.Applicative hiding ((<|>), many)
 import Text.Parsec
 import Text.Parsec.String
-import Control.Applicative hiding ((<|>), many)
 import AST
 
 parseNum :: Parser Int
