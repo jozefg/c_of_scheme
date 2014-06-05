@@ -1,12 +1,12 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances, DeriveFunctor      #-}
 module Utils.Gen where
-import Control.Monad.State
-import Control.Monad.Reader
-import Control.Monad.Identity
-import Control.Monad.Writer
 import Control.Applicative
 import Control.Error
+import Control.Monad.Identity
+import Control.Monad.Reader
+import Control.Monad.State
+import Control.Monad.Writer
 
 newtype GenT m a = GenT {unGenT :: StateT Integer m a}
                     deriving(Functor)

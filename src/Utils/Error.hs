@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards, FlexibleContexts #-}
 module Utils.Error where
-import Text.Printf
 import Control.Monad.Error
+import Text.Printf
 
 data Stage = Parser | Rewrite | CPS | ClosConv | CodeGen
 
