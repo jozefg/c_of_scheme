@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 module CodeGen (codegen) where
-import AST
 import Control.Monad.State
 import Control.Monad.Writer
 import Control.Applicative
 import qualified Data.Map as M
-import Language.C.DSL
 import Data.String
 import Data.Maybe (catMaybes, mapMaybe)
 import Data.List (foldl')
+import Language.C.DSL
+import AST
 import Utils.Gen
 import Utils.Error
 
