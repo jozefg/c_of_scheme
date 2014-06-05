@@ -32,7 +32,7 @@ The same as you would do in SML.
 
 ## How do I run c_of_scheme?
 
-To use c_of_scheme, simply run `make build` which will stick the rts in `~/.c_of_scheme` and give you
+To use `c_of_scheme`, simply run `make build` which will stick the rts in `~/.c_of_scheme` and give you
 an excutable, `c_of_scheme` to run on a scheme file producing `a.out`.
 
 ## Can I Contribute?
@@ -50,3 +50,8 @@ Some things that could be fun to work on include
  - A macro system
 
 or anything else that interests you!
+
+## How is `c_of_scheme` organized?
+
+The compiler is under `src/`, the runtime system is under `c-bits/` and some
+examples of compilable Scheme programs are under `test/`.
