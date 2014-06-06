@@ -1,8 +1,11 @@
 module Parser where
 import Control.Applicative hiding ((<|>), many)
+import Control.Monad.Trans
+import Control.Error
 import Text.Parsec
 import Text.Parsec.String
 import AST
+import Utils.Error
 
 parseNum :: Parser Int
 parseNum = fmap read $ (:) <$> (char '-' <|> return '0') <*> many1 digit
@@ -68,5 +71,7 @@ parseDec = paren $ do
   var <- spaced parseVar
   Def var <$> parseExp
 
-parseFile :: String -> IO (Either ParseError [SDec UserPrim])
-parseFile = parseFromFile (spaces *> many1 (spaced parseDec))
+parseFile :: String -> IO (Compiler [SDec UserPrim])
+parseFile = fmap (lift . hoistEither . intoFail) . parseFromFile (spaces *> many1 (spaced parseDec))
+  where intoFail (Left e)  = Left $ Failure Parser "parseSDec" (show e)
+        intoFail (Right r) = Right r
