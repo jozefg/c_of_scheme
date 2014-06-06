@@ -1,4 +1,4 @@
-module Parser where
+module Parser (parseFile, parseString) where
 import Control.Applicative hiding ((<|>), many)
 import Control.Monad.Trans
 import Control.Error
@@ -71,7 +71,16 @@ parseDec = paren $ do
   var <- spaced parseVar
   Def var <$> parseExp
 
-parseFile :: String -> IO (Compiler [SDec UserPrim])
-parseFile = fmap (lift . hoistEither . intoFail) . parseFromFile (spaces *> many1 (spaced parseDec))
+schemeParser :: Parser [SDec UserPrim]
+schemeParser = spaces *> many1 (spaced parseDec) <* eof
+
+liftParseResult :: Either ParseError a -> Compiler a
+liftParseResult = lift . hoistEither . intoFail
   where intoFail (Left e)  = Left $ Failure Parser "parseSDec" (show e)
         intoFail (Right r) = Right r
+
+parseFile :: String -> IO (Compiler [SDec UserPrim])
+parseFile = fmap liftParseResult . parseFromFile schemeParser
+
+parseString :: String -> Compiler [SDec UserPrim]
+parseString = liftParseResult . parse schemeParser "<<unnamed source>>"
