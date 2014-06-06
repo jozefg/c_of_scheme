@@ -20,7 +20,8 @@ executable c_of_scheme
                        OptimizeCPS,
                        ClosureConvert,
                        CodeGen,
-                       RewriteToplevels
+                       RewriteToplevels,
+                       Driver
   build-depends:       base >=4.6 && <5,
                        mtl>= 2.0,
                        containers,
