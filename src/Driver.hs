@@ -1,4 +1,10 @@
-module Driver where
+module Driver
+       ( parseFile
+       , parseString
+       , compileScheme
+       , compileC
+       , renderC
+       , compiler) where
 import Control.Monad
 import Control.Error
 import System.Posix.User
@@ -34,7 +40,7 @@ compileC code = do
       gc    = cBits ++ "gc.c"
   writeFile cFile (renderC code)
   output <- system $ "gcc -g -I" ++ unwords [cBits, cFile, rts, gc] ++ "  `pkg-config --cflags --libs glib-2.0`"
-  print output
+  print output -- Prints ExitSuccess or failure, the only output of the compiler ATM (usability!)
 
 compiler :: [FilePath] -> IO ()
 compiler files = do
