@@ -43,9 +43,7 @@ compiler files = do
   case  compRes of
     Right source -> compileC source
     Left  e      -> errLn (presentError e)
-  where
-    joinFiles :: [Compiler [SDec UserPrim]] -> Compiler [SDec UserPrim]
-    joinFiles = fmap concat . sequence
+  where joinFiles = fmap concat . sequence
 
 -- | List of primitives wrapped in fully eta-converted
 -- functions. These will be properly CPS converted.
