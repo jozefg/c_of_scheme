@@ -74,3 +74,8 @@ instance Unfoldable (SExp p) where
   embed (AppF f args)    = App f args
   embed (VarF v)         = Var v
   embed (PrimF p)        = Prim p 
+
+runCompiler :: Compiler a -> Either Failure a
+runCompiler = runGen
+             . eitherT (return . Left) (return . Right)
+             . flip evalStateT (SVar "")

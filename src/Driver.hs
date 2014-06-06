@@ -1,11 +1,9 @@
 module Driver where
 import Control.Monad
-import Control.Monad.State
 import Control.Error
 import System.Posix.User
 import System.Cmd
 import Language.C.DSL (pretty, CExtDecl)
-import Utils.Gen
 import Utils.Error
 import AST
 import Parser
@@ -15,18 +13,11 @@ import OptimizeCPS
 import ClosureConvert
 import CodeGen
 
-compilerPipeline :: [SDec UserPrim] -> Compiler [CExtDecl]
-compilerPipeline = makeMain >=> cpsify >=> optimize >=> closConvert >=> codegen
-
 -- | The big compilation function, chains together each section of the
--- compiler and returns either a failure or the C code as a string.
-schemeToC :: Compiler [SDec UserPrim] -> Either Failure [CExtDecl]
-schemeToC =  runGen
-             . eitherT (return . Left) success
-             . flip evalStateT (SVar "")
-             . (>>=compilerPipeline)
-             . fmap (++prims)
-  where success = return . Right
+-- compiler and returns a list of C declarations
+compileScheme :: [SDec UserPrim] -> Compiler [CExtDecl]
+compileScheme = addPrimops >=> makeMain >=> cpsify >=> optimize >=> closConvert >=> codegen
+  where addPrimops = return . (++prims)
 
 -- | Pretty print the C code with proper includes
 renderC :: [CExtDecl] -> String
@@ -47,10 +38,14 @@ compileC code = do
 
 compiler :: [FilePath] -> IO ()
 compiler files = do
-  res <- mapM parseFile files
-  case schemeToC (fmap concat . sequence $ res) of
+  res <- mapM parseFile files :: IO ([Compiler [SDec UserPrim]])
+  let compRes = runCompiler (joinFiles res >>= compileScheme)
+  case  compRes of
     Right source -> compileC source
     Left  e      -> errLn (presentError e)
+  where
+    joinFiles :: [Compiler [SDec UserPrim]] -> Compiler [SDec UserPrim]
+    joinFiles = fmap concat . sequence
 
 -- | List of primitives wrapped in fully eta-converted
 -- functions. These will be properly CPS converted.
