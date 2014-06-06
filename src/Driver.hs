@@ -42,6 +42,8 @@ compileC code = do
   output <- system $ "gcc -g -I" ++ unwords [cBits, cFile, rts, gc] ++ "  `pkg-config --cflags --libs glib-2.0`"
   print output -- Prints ExitSuccess or failure, the only output of the compiler ATM (usability!)
 
+-- | The IO part of the compiler, handling loading and parsing files
+-- and joining together all the compilation glue of compileScheme and friends
 compiler :: [FilePath] -> IO ()
 compiler files = do
   res <- mapM parseFile files :: IO ([Compiler [SDec UserPrim]])
