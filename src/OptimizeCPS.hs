@@ -1,10 +1,9 @@
-{-# LANGUAGE PatternGuards #-}
-module OptimizeCPS (optimize) where
+module OptimizeCPS (optimizeCPS) where
 import AST
 import Data.Functor.Foldable
 
-optimize :: [SDec CPSPrim] -> Compiler [SDec CPSPrim]
-optimize = mapM optimizer
+optimizeCPS :: [SDec CPSPrim] -> Compiler [SDec CPSPrim]
+optimizeCPS = mapM optimizer
   where optimizer (Def n e)     = Def n `fmap` optimizeExp e
         optimizer (Fun v vs es) = Fun v vs `fmap` mapM optimizeExp es
         optimizer (Init n)      = return $ Init n

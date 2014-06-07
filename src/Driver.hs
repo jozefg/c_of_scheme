@@ -4,7 +4,8 @@ module Driver
        , compileScheme
        , compileC
        , renderC
-       , compiler) where
+       , compiler
+       ,) where
 import Control.Monad
 import Control.Error
 import System.Posix.User
@@ -22,7 +23,7 @@ import CodeGen
 -- | The big compilation function, chains together each section of the
 -- compiler and returns a list of C declarations
 compileScheme :: [SDec UserPrim] -> Compiler [CExtDecl]
-compileScheme = addPrimops >=> makeMain >=> cpsify >=> optimize >=> closConvert >=> codegen
+compileScheme = addPrimops >=> makeMain >=> cpsify >=> optimizeCPS >=> closConvert >=> codegen
   where addPrimops = return . (++prims)
 
 -- | Pretty print the C code with proper includes
