@@ -1,16 +1,17 @@
 module OptimizeCPS (optimizeCPS) where
-import AST
 import Data.Functor.Foldable
+import AST
+import Utils.Error
 
 optimizeCPS :: [SDec CPSPrim] -> Compiler [SDec CPSPrim]
-optimizeCPS = mapM optimizer
-  where optimizer (Def n e)     = Def n `fmap` optimizeExp e
-        optimizer (Fun v vs es) = Fun v vs `fmap` mapM optimizeExp es
+optimizeCPS decs = mapM optimizer decs
+  where optimizer Def{}         = failCPS "optimizeCPS" "Unexpected Def"
+        optimizer (Fun v vs es) = Fun v vs `fmap` mapM (optimizeExp decs) es
         optimizer (Init n)      = return $ Init n
 
 
-optimizeExp :: SExp CPSPrim -> Compiler (SExp CPSPrim)
-optimizeExp = return . inline
+optimizeExp :: [SDec CPSPrim] -> SExp CPSPrim -> Compiler (SExp CPSPrim)
+optimizeExp decs = return . inlineExp
 
 -- | The size of term, useful for telling whether inlining/optimizing
 -- actually did something useful
@@ -58,8 +59,7 @@ effectFree = cata pureish
 shouldInline :: Var -> SExp CPSPrim -> SExp CPSPrim -> Bool
 shouldInline var arg body = not (mutated var body) && size arg < 30 && effectFree arg
 
-
-inline :: SExp CPSPrim -> SExp CPSPrim
-inline = cata folder -- Simple inlining, inline only small pure arguments
+inlineExp :: SExp CPSPrim -> SExp CPSPrim
+inlineExp = cata folder -- Simple inlining, inline only small pure arguments
   where folder (AppF (Lam [v] [e]) [a]) | shouldInline v a e = substitute v a e 
         folder e = embed e
