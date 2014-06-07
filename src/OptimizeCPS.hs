@@ -6,12 +6,12 @@ import Utils.Error
 optimizeCPS :: [SDec CPSPrim] -> Compiler [SDec CPSPrim]
 optimizeCPS decs = mapM optimizer decs
   where optimizer Def{}         = failCPS "optimizeCPS" "Unexpected Def"
-        optimizer (Fun v vs es) = Fun v vs `fmap` mapM (optimizeExp decs) es
+        optimizer (Fun v vs es) = Fun v vs `fmap` mapM optimizeExp es
         optimizer (Init n)      = return $ Init n
 
 
-optimizeExp :: [SDec CPSPrim] -> SExp CPSPrim -> Compiler (SExp CPSPrim)
-optimizeExp decs = return . inlineExp
+optimizeExp :: SExp CPSPrim -> Compiler (SExp CPSPrim)
+optimizeExp = return . inlineExp
 
 -- | The size of term, useful for telling whether inlining/optimizing
 -- actually did something useful
