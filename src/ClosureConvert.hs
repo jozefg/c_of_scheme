@@ -9,19 +9,6 @@ import AST
 import Utils.Gen
 import Utils.Error
 
--- Procedure for closure conversion:
---        
--- Lift each lambda to it's own toplevel function accepting an
--- extra parameter, a closure. Add it to a list of closured functions
---        
--- Maintain a list of local variables and a list of closure converted variables
--- and look up each explicitly as needed.
---
--- At the beginning of each lambda, define a new value to be the new closure
--- and pass it to all functions marked as needing it. Add one step to the beginning
--- of each lambda, NewClos that will take the previous closure as the first argument,
--- building a "tree" out of closures.
-
 type ClosPath = M.Map Var [Int]
 type GlobalVars  = S.Set Var
 type Closures = [(Var, SExp ClosPrim)]
