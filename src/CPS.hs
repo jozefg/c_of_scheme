@@ -14,8 +14,8 @@ cpsify decs = (:) <$> callcc <*> mapM toCPS decs
         toCPS (Fun v vars exps) = do
           newLam <- cps (Lam vars exps) (Prim Halt)
           case newLam of
-            App (Prim Halt) [(Lam vars exps)] -> return $ Fun v vars exps
-            _                                 -> failCPS "toCPS" "Unexpected structure for newLam"
+            App (Prim Halt) [(Lam params body)] -> return $ Fun v params body
+            _                                   -> failCPS "toCPS" "Unexpected structure for newLam"
 
 
 callcc :: Compiler (SDec CPSPrim)
